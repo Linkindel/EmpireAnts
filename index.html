@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Empire Fourmi - Stratégie de Colonie</title>
+  <meta name="description" content="Jeu de stratégie tactique et de gestion de fourmilière : composez votre armée (Tanks, Guerrières, Éclaireuses), bâtissez vos galeries et défendez la Reine.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Top Header with Resources & Controls -->
+  <header>
+    <div class="header-inner">
+      <div class="brand">
+        <span class="brand-icon">🐜</span>
+        <div>
+          <h1 data-i18n="brand.title">EMPIRE FOURMI</h1>
+          <div class="brand-sub" data-i18n="brand.sub">Stratégie Souterraine</div>
+        </div>
+      </div>
+
+      <!-- Live Resource Chips -->
+      <div class="resources-bar">
+        <div class="res-chip food" data-i18n-title="res.food.title" title="Nourriture en stock (croissance et entretien)">
+          <span>🍃</span>
+          <span class="val" id="resFood">100</span>
+          <span class="delta pos" id="deltaFood">+2/s</span>
+        </div>
+
+        <div class="res-chip pheromone" data-i18n-title="res.phero.title" title="Points de phéromones (recherche et doctrines)">
+          <span>🧪</span>
+          <span class="val" id="resPheromone">15</span>
+          <span class="delta pos" id="deltaPheromone">+0.5/s</span>
+        </div>
+
+        <div class="res-chip pop" data-i18n-title="res.pop.title" title="Population actuelle / Capacité maximale">
+          <span>👥</span>
+          <span class="val" id="resPop">10 / 25</span>
+        </div>
+
+        <div class="res-chip queen" data-i18n-title="res.queen.title" title="Santé de la Reine">
+          <span>👑</span>
+          <span class="val" id="resQueen">100%</span>
+        </div>
+      </div>
+
+      <!-- Time, Speed, Sound, Reset & Language Controls -->
+      <div class="header-controls">
+        <div class="speed-controls">
+          <button class="speed-btn" id="btnPause" data-i18n-title="speed.pause" title="Mettre en pause">⏸</button>
+          <button class="speed-btn active" id="btnSpeed1" data-i18n-title="speed.1x" title="Vitesse normale">1x</button>
+          <button class="speed-btn" id="btnSpeed2" data-i18n-title="speed.2x" title="Vitesse x2">2x</button>
+          <button class="speed-btn" id="btnSpeed3" data-i18n-title="speed.3x" title="Vitesse x3">3x</button>
+        </div>
+
+        <div class="lang-controls">
+          <button class="lang-btn active" id="btnLangFR" data-i18n-title="lang.switch.title" onclick="setLanguage('fr')">🇫🇷 FR</button>
+          <button class="lang-btn" id="btnLangEN" data-i18n-title="lang.switch.title" onclick="setLanguage('en')">🇬🇧 EN</button>
+          <button class="lang-btn" id="btnSound" data-i18n-title="sound.toggle.title" onclick="toggleSound()">🔊</button>
+          <button class="lang-btn" id="btnReset" data-i18n-title="reset.btn.title" onclick="resetGame()">🔄</button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Game Stage -->
+  <main>
+    <!-- Left Section: Visual Colony Simulation View -->
+    <section class="colony-section">
+      <div class="canvas-container">
+        <div class="colony-overlay-info">
+          <div class="season-badge" id="badgeSeason">
+            <span>☀️</span> Jour <span id="gameDay">1</span> - Jour
+          </div>
+          <div class="alert-banner" id="raidAlert">
+            ⚠️ ALERTE : Raid ennemi imminent !
+          </div>
+        </div>
+        <canvas id="colonyCanvas"></canvas>
+      </div>
+    </section>
+
+    <!-- Right Section: Strategic Command Dashboard -->
+    <section class="command-section">
+      <!-- Desktop Tab Bar -->
+      <nav class="tabs-nav" id="desktopTabs">
+        <button class="tab-btn active" data-tab="nursery"><span>🐣</span> <span data-i18n="tab.nursery">Nurserie & Armée</span></button>
+        <button class="tab-btn" data-tab="rooms"><span>🏛️</span> <span data-i18n="tab.rooms">Salles & Galeries</span></button>
+        <button class="tab-btn" data-tab="expeditions"><span>🗺️</span> <span data-i18n="tab.expeditions">Expéditions</span></button>
+        <button class="tab-btn" data-tab="mutations"><span>🧬</span> <span data-i18n="tab.mutations">Évolutions</span></button>
+        <button class="tab-btn" data-tab="logs"><span>📜</span> <span data-i18n="tab.logs">Journal</span></button>
+      </nav>
+
+      <!-- TAB 1: Nurserie & Castes -->
+      <div class="tab-content active" id="tab-nursery">
+        <div class="tab-header">
+          <h2 data-i18n="nursery.header.title">Incubation & Ratios de Castes</h2>
+          <p data-i18n="nursery.header.desc">Affectez vos œufs pour équilibrer l'économie, la reconnaissance et la puissance militaire.</p>
+        </div>
+
+        <!-- Incubation Queue Panel -->
+        <div class="incubation-panel" id="incubationPanel">
+          <div class="incubation-header">
+            <span data-i18n="nursery.queue.title">🥚 Couvain en Incubation</span>
+            <span id="incubationCountBadge">0</span>
+          </div>
+          <div class="incubation-empty" id="incubationEmpty" data-i18n="nursery.queue.empty">Aucun œuf en incubation. Lancez une ponte ci-dessous.</div>
+          <div class="incubation-list" id="incubationList"></div>
+        </div>
+
+        <div class="cards-grid">
+          <!-- Worker Card -->
+          <div class="card" id="cardWorker">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🌾</span>
+                <div>
+                  <div class="card-name" data-i18n="caste.worker.name">Fourmi Ouvrière</div>
+                  <div class="card-desc" data-i18n="caste.worker.desc">Récolte les denrées, creuse les salles et soigne la colonie.</div>
+                </div>
+              </div>
+              <div class="card-count" id="countWorker">6</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="caste.worker.stat1">Production :</span> <b id="statWorkerProd">+0.55 🍃/s</b></span>
+              <span><span data-i18n="caste.worker.stat2">Entretien :</span> <b id="statWorkerUpkeep">-0.08 🍃/s</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costIncubate_worker">10 🍃</div>
+              <button class="btn-primary" id="btnIncubateWorker" data-i18n="caste.worker.btn" onclick="incubateAnt('worker')">Incuber Ouvrière</button>
+            </div>
+          </div>
+
+          <!-- Scout Card -->
+          <div class="card" id="cardScout">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">⚡</span>
+                <div>
+                  <div class="card-name" data-i18n="caste.scout.name">Fourmi Éclaireuse</div>
+                  <div class="card-desc" data-i18n="caste.scout.desc">Rapide et alerte. Découvre les expéditions et signale les prédateurs.</div>
+                </div>
+              </div>
+              <div class="card-count" id="countScout">2</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="caste.scout.stat1">Vitesse :</span> <b data-i18n="caste.scout.stat1.val">Très Haute</b></span>
+              <span><span data-i18n="caste.scout.stat2">Phéromones :</span> <b id="statScoutPhero">+0.35 🧪/s</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costIncubate_scout">15 🍃</div>
+              <button class="btn-primary" id="btnIncubateScout" data-i18n="caste.scout.btn" onclick="incubateAnt('scout')">Incuber Éclaireuse</button>
+            </div>
+          </div>
+
+          <!-- Warrior Card -->
+          <div class="card" id="cardWarrior">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">⚔️</span>
+                <div>
+                  <div class="card-name" data-i18n="caste.warrior.name">Fourmi Guerrière</div>
+                  <div class="card-desc" data-i18n="caste.warrior.desc">Mandibules tranchantes et tirs d'acide formique. Gros dégâts.</div>
+                </div>
+              </div>
+              <div class="card-count" id="countWarrior">2</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="caste.warrior.stat1">Attaque :</span> <b data-i18n="caste.warrior.stat1.val">36 Puissance</b></span>
+              <span><span data-i18n="caste.warrior.stat2">Défense :</span> <b data-i18n="caste.warrior.stat2.val">20 Rempart</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costIncubate_warrior">25 🍃</div>
+              <button class="btn-primary" id="btnIncubateWarrior" data-i18n="caste.warrior.btn" onclick="incubateAnt('warrior')">Incuber Guerrière</button>
+            </div>
+          </div>
+
+          <!-- Tank / Major Card -->
+          <div class="card" id="cardTank">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🛡️</span>
+                <div>
+                  <div class="card-name" data-i18n="caste.tank.name">Fourmi Tank (Major)</div>
+                  <div class="card-desc" data-i18n="caste.tank.desc">Tête renforcée en bouclier. Encaisse les chocs et protège l'armée.</div>
+                </div>
+              </div>
+              <div class="card-count" id="countTank">1</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="caste.tank.stat1">Points de Vie :</span> <b data-i18n="caste.tank.stat1.val">220 PV</b></span>
+              <span><span data-i18n="caste.tank.stat2">Défense :</span> <b data-i18n="caste.tank.stat2.val">35 Rempart</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costIncubate_tank">40 🍃</div>
+              <button class="btn-primary" id="btnIncubateTank" data-i18n="caste.tank.btn" onclick="incubateAnt('tank')">Incuber Tank</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: Rooms & Infrastructure -->
+      <div class="tab-content" id="tab-rooms">
+        <div class="tab-header">
+          <h2 data-i18n="rooms.header.title">Aménagement des Chambres</h2>
+          <p data-i18n="rooms.header.desc">Améliorez les cavités pour accroître la population, stocker des surplus et produire sous terre.</p>
+        </div>
+
+        <div class="cards-grid">
+          <!-- Queen Chamber -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">👑</span>
+                <div>
+                  <div class="card-name"><span data-i18n="room.queen.name">Chambre Royale</span> (<span data-i18n="room.lvl">Niv.</span> <span id="lvlQueenRoom">1</span>)</div>
+                  <div class="card-desc" data-i18n="room.queen.desc">Nid douillet de la Reine. Accélère la ponte automatique et la vitesse du couvain.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="room.queen.stat">Vitesse couvain :</span> <b id="statQueenSpeed">+20%</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costQueenRoom">50 🍃</div>
+              <button class="btn-primary" id="btnUpQueenRoom" data-i18n="room.queen.btn" onclick="upgradeRoom('queen')">Agrandir la Chambre</button>
+            </div>
+          </div>
+
+          <!-- Granary -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🏺</span>
+                <div>
+                  <div class="card-name"><span data-i18n="room.granary.name">Grenier à Graines</span> (<span data-i18n="room.lvl">Niv.</span> <span id="lvlGranary">1</span>)</div>
+                  <div class="card-desc" data-i18n="room.granary.desc">Conserve le miellat et les feuilles récoltées à l'abri de l'humidité.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="room.granary.stat">Capacité maximale :</span> <b id="statStorage">180 🍃</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costGranary">40 🍃</div>
+              <button class="btn-primary" id="btnUpGranary" data-i18n="room.granary.btn" onclick="upgradeRoom('granary')">Agrandir le Grenier</button>
+            </div>
+          </div>
+
+          <!-- Dormitory -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🛏️</span>
+                <div>
+                  <div class="card-name"><span data-i18n="room.dorm.name">Dortoirs de Colonie</span> (<span data-i18n="room.lvl">Niv.</span> <span id="lvlDorm">1</span>)</div>
+                  <div class="card-desc" data-i18n="room.dorm.desc">Offre des galeries de repos pour augmenter le nombre total de fourmis.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="room.dorm.stat">Plafond de population :</span> <b id="statPopCap">25 Fourmis</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costDorm">60 🍃</div>
+              <button class="btn-primary" id="btnUpDorm" data-i18n="room.dorm.btn" onclick="upgradeRoom('dorm')">Creuser Nouveaux Dortoirs</button>
+            </div>
+          </div>
+
+          <!-- Barricade -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🧱</span>
+                <div>
+                  <div class="card-name"><span data-i18n="room.barricade.name">Barricade d'Entrée</span> (<span data-i18n="room.lvl">Niv.</span> <span id="lvlBarricade">0</span>)</div>
+                  <div class="card-desc" data-i18n="room.barricade.desc">Piège de terre et brindilles pour retenir les assauts de scarabées ou fourmis rouges.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="room.barricade.stat">Ralentissement ennemi :</span> <b id="statBarricade">0 Défense</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costBarricade">45 🍃</div>
+              <button class="btn-primary" id="btnUpBarricade" data-i18n="room.barricade.btn" onclick="upgradeRoom('barricade')">Renforcer l'Entrée</button>
+            </div>
+          </div>
+
+          <!-- Fungus Farm (Champignonnière) -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🍄</span>
+                <div>
+                  <div class="card-name"><span data-i18n="room.fungus.name">Champignonnière Souterraine</span> (<span data-i18n="room.lvl">Niv.</span> <span id="lvlFungus">0</span>)</div>
+                  <div class="card-desc" data-i18n="room.fungus.desc">Culture de champignons symbiotiques. Produit de la nourriture même pendant le gel d'hiver.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="room.fungus.stat">Production constante :</span> <b id="statFungus">+0.0 🍃/s</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costFungus">55 🍃</div>
+              <button class="btn-primary" id="btnUpFungus" data-i18n="room.fungus.btn" onclick="upgradeRoom('fungus')">Cultiver Champignons</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: Expeditions & Combat -->
+      <div class="tab-content" id="tab-expeditions">
+        <div class="tab-header">
+          <h2 data-i18n="exp.header.title">Expéditions & Opérations Militaires</h2>
+          <p data-i18n="exp.header.desc">Composez votre escouade, choisissez la doctrine de combat et lancez vos troupes à la conquête de la surface.</p>
+        </div>
+
+        <!-- Active Expedition Progress Banner -->
+        <div class="active-exp-banner" id="activeExpBanner">
+          <div class="active-exp-top">
+            <div><span data-i18n="exp.active.title">⚔️ Expédition en cours :</span> <span id="activeExpName">-</span> (<span id="activeExpTimer">0s</span>)</div>
+            <button class="btn-secondary" data-i18n="exp.recall.btn" onclick="recallExpedition()">Rappeler</button>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" id="activeExpBar"></div>
+          </div>
+        </div>
+
+        <!-- Squad Builder -->
+        <div class="squad-builder">
+          <div class="squad-header">
+            <span data-i18n="exp.squad.title">🛡️ Composition de l'Escouade</span>
+            <div class="squad-meta-group">
+              <span><span data-i18n="exp.squad.mobilized">Forces :</span> <b id="squadTotalCount">0</b></span>
+              <span><span data-i18n="exp.squad.power">Puissance :</span> <b class="risk-medium" id="squadPowerVal">0</b></span>
+            </div>
+          </div>
+
+          <div class="squad-selectors">
+            <div class="squad-item">
+              <div data-i18n="exp.squad.tanks">🛡️ Tanks</div>
+              <div class="squad-controls">
+                <button class="squad-btn" onclick="adjustSquad('tank', -1)">-</button>
+                <b id="squadTankVal">0</b>
+                <button class="squad-btn" onclick="adjustSquad('tank', 1)">+</button>
+              </div>
+            </div>
+
+            <div class="squad-item">
+              <div data-i18n="exp.squad.warriors">⚔️ Guerrières</div>
+              <div class="squad-controls">
+                <button class="squad-btn" onclick="adjustSquad('warrior', -1)">-</button>
+                <b id="squadWarriorVal">0</b>
+                <button class="squad-btn" onclick="adjustSquad('warrior', 1)">+</button>
+              </div>
+            </div>
+
+            <div class="squad-item">
+              <div data-i18n="exp.squad.scouts">⚡ Éclaireuses</div>
+              <div class="squad-controls">
+                <button class="squad-btn" onclick="adjustSquad('scout', -1)">-</button>
+                <b id="squadScoutVal">0</b>
+                <button class="squad-btn" onclick="adjustSquad('scout', 1)">+</button>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="squad-doctrine-label" data-i18n="exp.doctrine.label">Doctrine Tactique :</div>
+            <div class="doctrine-selector">
+              <div class="doctrine-chip active" data-doctrine="balanced" data-i18n="doctrine.balanced.chip" onclick="setDoctrine('balanced')">⚖️ Équilibrée</div>
+              <div class="doctrine-chip" data-doctrine="turtle" data-i18n="doctrine.turtle.chip" onclick="setDoctrine('turtle')">🛡️ Formation Tortue (Défense & Survie)</div>
+              <div class="doctrine-chip" data-doctrine="rush" data-i18n="doctrine.rush.chip" onclick="setDoctrine('rush')">⚡ Assaut Mandibules (Attaque Rapide)</div>
+              <div class="doctrine-chip" data-doctrine="acid" data-i18n="doctrine.acid.chip" onclick="setDoctrine('acid')">🧪 Bombardement Acide (Distance)</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Missions List -->
+        <div class="cards-grid" id="missionsList">
+          <!-- Mission 1 -->
+          <div class="card" id="mission1">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🌸</span>
+                <div>
+                  <div class="card-name" data-i18n="mission.pucerons.name">Piller un Rosier à Pucerons</div>
+                  <div class="card-desc" data-i18n="mission.pucerons.desc">Gisement de miellat sucré gardé par de petites coccinelles.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="risk.label">Difficulté :</span> <b class="risk-low" id="missionRisk_pucerons">Faible</b></span>
+              <span><span data-i18n="chance.label">Victoire :</span> <b id="missionChance_pucerons">0%</b></span>
+              <span><span data-i18n="loot.label">Butin :</span> <b id="missionLoot_pucerons">+75 🍃, +6 🧪</b></span>
+            </div>
+            <div class="card-action">
+              <button class="btn-primary" id="btnMission_pucerons" data-i18n="mission.deploy.btn" onclick="launchExpedition('pucerons')">Déployer l'Escouade</button>
+            </div>
+          </div>
+
+          <!-- Mission 2 -->
+          <div class="card" id="mission2">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🐛</span>
+                <div>
+                  <div class="card-name" data-i18n="mission.chenille.name">Chasser une Chenille Égarée</div>
+                  <div class="card-desc" data-i18n="mission.chenille.desc">Une proie massive et grasse. Nécessite des Tanks pour la maintenir au sol.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="risk.label">Difficulté :</span> <b class="risk-medium" id="missionRisk_chenille">Moyen</b></span>
+              <span><span data-i18n="chance.label">Victoire :</span> <b id="missionChance_chenille">0%</b></span>
+              <span><span data-i18n="loot.label">Butin :</span> <b id="missionLoot_chenille">+180 🍃, +18 🧪</b></span>
+            </div>
+            <div class="card-action">
+              <button class="btn-primary" id="btnMission_chenille" data-i18n="mission.deploy.btn" onclick="launchExpedition('chenille')">Déployer l'Escouade</button>
+            </div>
+          </div>
+
+          <!-- Mission 3 -->
+          <div class="card" id="mission3">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🔥</span>
+                <div>
+                  <div class="card-name" data-i18n="mission.fourmis_rouges.name">Raid sur Avant-Poste Fourmis Rouges</div>
+                  <div class="card-desc" data-i18n="mission.fourmis_rouges.desc">Bataille territoriale sanglante contre une colonie rivale féroce.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="risk.label">Difficulté :</span> <b class="risk-high" id="missionRisk_fourmis_rouges">Élevé</b></span>
+              <span><span data-i18n="chance.label">Victoire :</span> <b id="missionChance_fourmis_rouges">0%</b></span>
+              <span><span data-i18n="loot.label">Butin :</span> <b id="missionLoot_fourmis_rouges">+320 🍃, +40 🧪, +1 Larve(s)</b></span>
+            </div>
+            <div class="card-action">
+              <button class="btn-primary" id="btnMission_fourmis_rouges" data-i18n="mission.deploy.btn" onclick="launchExpedition('fourmis_rouges')">Déployer l'Escouade</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 4: Mutations -->
+      <div class="tab-content" id="tab-mutations">
+        <div class="tab-header">
+          <h2 data-i18n="mut.header.title">Arbre Génétique & Phéromones</h2>
+          <p data-i18n="mut.header.desc">Dépensez vos phéromones pour doter vos castes de mutations permanentes.</p>
+        </div>
+
+        <div class="cards-grid">
+          <!-- Mutation 1 -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🦷</span>
+                <div>
+                  <div class="card-name" data-i18n="mut.mandibules.name">Mandibules de Titane</div>
+                  <div class="card-desc" data-i18n="mut.mandibules.desc">Renforce la dureté de la chitine. +30% de dégâts pour toutes les Guerrières.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag cost-pheromone" id="costMut_mandibules">25 🧪</div>
+              <button class="btn-primary" id="btnMutMandibules" onclick="researchMutation('mandibules')">Débloquer</button>
+            </div>
+          </div>
+
+          <!-- Mutation 2 -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🛡️</span>
+                <div>
+                  <div class="card-name" data-i18n="mut.carapace.name">Carapace de Chitine Lourde</div>
+                  <div class="card-desc" data-i18n="mut.carapace.desc">Augmente la résistance des Tanks de +40 PV et absorbe 15% de dégâts en plus.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag cost-pheromone" id="costMut_carapace">35 🧪</div>
+              <button class="btn-primary" id="btnMutCarapace" onclick="researchMutation('carapace')">Débloquer</button>
+            </div>
+          </div>
+
+          <!-- Mutation 3 -->
+          <div class="card">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🧪</span>
+                <div>
+                  <div class="card-name" data-i18n="mut.acide.name">Glandes d'Acide Formique Concentré</div>
+                  <div class="card-desc" data-i18n="mut.acide.desc">Permet aux guerrières de dissoudre les armures d'insectes à mi-distance.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag cost-pheromone" id="costMut_acide">45 🧪</div>
+              <button class="btn-primary" id="btnMutAcide" onclick="researchMutation('acide')">Débloquer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 5: Event Logs -->
+      <div class="tab-content" id="tab-logs">
+        <div class="tab-header">
+          <h2 data-i18n="logs.header.title">Journal de la Colonie</h2>
+          <p data-i18n="logs.header.desc">Chroniques des batailles, des découvertes et de la vie souterraine.</p>
+        </div>
+        <div class="log-container" id="logContainer">
+          <div class="log-entry"><span class="log-time">[00:00]</span> <span data-i18n="log.init">La Reine a fondé la colonie. 6 ouvrières, 2 éclaireuses et 2 guerrières sont prêtes.</span></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Mobile Bottom Navigation (for smartphones like Pixel) -->
+  <nav class="mobile-nav" id="mobileNav">
+    <button class="tab-btn active" data-tab="nursery"><span>🐣</span> <span data-i18n="tab.mobile.nursery">Armée</span></button>
+    <button class="tab-btn" data-tab="rooms"><span>🏛️</span> <span data-i18n="tab.mobile.rooms">Salles</span></button>
+    <button class="tab-btn" data-tab="expeditions"><span>🗺️</span> <span data-i18n="tab.mobile.expeditions">Expéditions</span></button>
+    <button class="tab-btn" data-tab="mutations"><span>🧬</span> <span data-i18n="tab.mobile.mutations">Évolution</span></button>
+    <button class="tab-btn" data-tab="logs"><span>📜</span> <span data-i18n="tab.mobile.logs">Journal</span></button>
+  </nav>
+
+  <!-- Architecture Modulaire : Tokens & i18n -> Renderer Canvas -> Logique Métier -->
+  <script src="config.js"></script>
+  <script src="renderer.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

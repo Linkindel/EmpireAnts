@@ -1,0 +1,21 @@
+# Dépendances Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Rapports de couverture de tests
+coverage/
+.nyc_output/
+
+# Fichiers système et IDE
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.vscode/
+.idea/
+
+# Fichiers temporaires
+*.tmp
+*.bak

@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+  <title>Banc d'Essai & Tests Unitaires - Empire Fourmi</title>
+  <style>
+    :root {
+      --bg: #12100e;
+      --card-bg: #1a1512;
+      --border: #2e2319;
+      --text: #e2e8f0;
+      --muted: #a0aec0;
+      --pass: #48bb78;
+      --fail: #f56565;
+      --accent: #f6ad55;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 0;
+      padding: 24px;
+    }
+    h1 {
+      color: var(--accent);
+      margin-top: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .summary-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      gap: 32px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .stat-val {
+      font-size: 24px;
+      font-weight: bold;
+    }
+    .stat-pass { color: var(--pass); }
+    .stat-fail { color: var(--fail); }
+    .stat-rate { color: var(--accent); }
+    .progress-bar-container {
+      width: 100%;
+      height: 12px;
+      background: #2d3748;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    .progress-bar {
+      height: 100%;
+      background: var(--pass);
+      width: 0%;
+      transition: width 0.3s;
+    }
+    .suite-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 16px;
+      overflow: hidden;
+    }
+    .suite-header {
+      background: #241c17;
+      padding: 10px 16px;
+      font-weight: bold;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+    }
+    .test-row {
+      padding: 8px 16px;
+      border-bottom: 1px solid #1f1813;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+    }
+    .test-row:last-child {
+      border-bottom: none;
+    }
+    .badge {
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-weight: bold;
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .badge-pass { background: #22543d; color: #9ae6b4; }
+    .badge-fail { background: #742a2a; color: #feb2b2; }
+    .test-error {
+      margin-left: 28px;
+      padding: 6px 12px;
+      background: #441c1c;
+      color: #feb2b2;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 4px;
+    }
+    #sandboxZone {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      width: 800px;
+      height: 600px;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🐜 Empire Fourmi — Banc d'Essai Automatisé (Tests & Couverture)</h1>
+
+  <div class="summary-card" id="summaryCard">
+    <div>
+      <div>Total Tests</div>
+      <div class="stat-val" id="statTotal">0</div>
+    </div>
+    <div>
+      <div>Réussis</div>
+      <div class="stat-val stat-pass" id="statPass">0</div>
+    </div>
+    <div>
+      <div>Échecs</div>
+      <div class="stat-val stat-fail" id="statFail">0</div>
+    </div>
+    <div>
+      <div>Taux de Réussite</div>
+      <div class="stat-val stat-rate" id="statRate">0%</div>
+    </div>
+    <div>
+      <div>Couverture Estimée</div>
+      <div class="stat-val stat-pass" id="statCoverage">≥ 85%</div>
+    </div>
+    <div class="progress-bar-container">
+      <div class="progress-bar" id="progressBar"></div>
+    </div>
+  </div>
+
+  <div id="resultsContainer"></div>
+
+  <!-- Sandbox DOM masquée pour exécuter l'environnement de jeu et de rendu sans impacter le runner -->
+  <div id="sandboxZone">
+    <canvas id="colonyCanvas" width="800" height="400"></canvas>
+    <div id="resFood">100</div>
+    <div id="deltaFood">+0/s</div>
+    <div id="resPheromone">20</div>
+    <div id="deltaPheromone">+0/s</div>
+    <div id="resPop">10 / 25</div>
+    <div id="resQueen">100%</div>
+    <div id="gameDay">1</div>
+    <div id="raidAlert" style="display:none;"></div>
+    <button id="btnPause"></button>
+    <button id="btnSpeed1" class="active"></button>
+    <button id="btnSpeed2"></button>
+    <button id="btnSpeed3"></button>
+    <button id="btnSound">🔊</button>
+    <button id="btnLangFR" class="active"></button>
+    <button id="btnLangEN"></button>
+    
+    <span id="statWorkerUpkeep"></span>
+    <span id="statScoutPhero"></span>
+    <span id="statWorkerProd"></span>
+    <span id="costIncubate_worker"></span>
+    <span id="costIncubate_scout"></span>
+    <span id="costIncubate_warrior"></span>
+    <span id="costIncubate_tank"></span>
+    <span id="costMut_mandibules"></span>
+    <span id="costMut_carapace"></span>
+    <span id="costMut_acide"></span>
+
+    <span id="countWorker">0</span>
+    <span id="countScout">0</span>
+    <span id="countWarrior">0</span>
+    <span id="countTank">0</span>
+    <button id="btnIncubateWorker"></button>
+    <button id="btnIncubateScout"></button>
+    <button id="btnIncubateWarrior"></button>
+    <button id="btnIncubateTank"></button>
+
+    <div id="incubationCountBadge">0</div>
+    <div id="incubationEmpty"></div>
+    <div id="incubationList"></div>
+
+    <span id="lvlQueenRoom">1</span>
+    <span id="costQueenRoom">0</span>
+    <span id="statQueenSpeed"></span>
+    <button id="btnUpQueenRoom"></button>
+
+    <span id="lvlGranary">1</span>
+    <span id="costGranary">0</span>
+    <span id="statStorage"></span>
+    <button id="btnUpGranary"></button>
+
+    <span id="lvlDorm">1</span>
+    <span id="costDorm">0</span>
+    <span id="statPopCap"></span>
+    <button id="btnUpDorm"></button>
+
+    <span id="lvlBarricade">0</span>
+    <span id="costBarricade">0</span>
+    <span id="statBarricade"></span>
+    <button id="btnUpBarricade"></button>
+
+    <span id="lvlFungus">0</span>
+    <span id="costFungus">0</span>
+    <span id="statFungus"></span>
+    <button id="btnUpFungus"></button>
+
+    <button id="btnMutMandibules"></button>
+    <button id="btnMutCarapace"></button>
+    <button id="btnMutAcide"></button>
+
+    <span id="squadTankVal">0</span>
+    <span id="squadWarriorVal">0</span>
+    <span id="squadScoutVal">0</span>
+    <span id="squadTotalCount">0</span>
+    <span id="squadPowerVal">0</span>
+    <div class="doctrine-chip" data-doctrine="balanced"></div>
+    <div class="doctrine-chip" data-doctrine="turtle"></div>
+    <div class="doctrine-chip" data-doctrine="rush"></div>
+    <div class="doctrine-chip" data-doctrine="acid"></div>
+
+    <div id="activeExpBanner">
+      <span id="activeExpName"></span>
+      <span id="activeExpTimer"></span>
+      <div id="activeExpBar"></div>
+    </div>
+
+    <div id="missionRisk_pucerons"></div>
+    <div id="missionChance_pucerons"></div>
+    <div id="missionLoot_pucerons"></div>
+    <button id="btnMission_pucerons"></button>
+
+    <div id="missionRisk_chenille"></div>
+    <div id="missionChance_chenille"></div>
+    <div id="missionLoot_chenille"></div>
+    <button id="btnMission_chenille"></button>
+
+    <div id="missionRisk_fourmis_rouges"></div>
+    <div id="missionChance_fourmis_rouges"></div>
+    <div id="missionLoot_fourmis_rouges"></div>
+    <button id="btnMission_fourmis_rouges"></button>
+
+    <div id="logContainer"></div>
+
+    <div id="desktopTabs">
+      <button class="tab-btn active" data-tab="nursery"></button>
+      <button class="tab-btn" data-tab="rooms"></button>
+    </div>
+    <div id="mobileNav">
+      <button class="tab-btn active" data-tab="nursery"></button>
+      <button class="tab-btn" data-tab="rooms"></button>
+    </div>
+    <div class="tab-content active" id="tab-nursery"></div>
+    <div class="tab-content" id="tab-rooms"></div>
+  </div>
+
+  <!-- Charger les modules de production -->
+  <script src="../config.js"></script>
+  <script src="../renderer.js"></script>
+  <script src="../game.js"></script>
+
+  <!-- Script du mini-framework de test -->
+  <script>
+    const TestFramework = {
+      suites: [],
+      currentSuite: null,
+      totalCount: 0,
+      passCount: 0,
+      failCount: 0,
+
+      describe: function(name, fn) {
+        const suite = { name: name, tests: [] };
+        this.suites.push(suite);
+        this.currentSuite = suite;
+        try {
+          fn();
+        } catch (e) {
+          suite.tests.push({ title: 'Erreur d\'initialisation de suite', pass: false, error: e.message || String(e) });
+        }
+      },
+
+      it: function(title, fn) {
+        if (!this.currentSuite) throw new Error("it() appelé hors d'un describe()");
+        this.totalCount++;
+        try {
+          fn();
+          this.currentSuite.tests.push({ title: title, pass: true });
+          this.passCount++;
+        } catch (err) {
+          this.currentSuite.tests.push({ title: title, pass: false, error: err.message || String(err) });
+          this.failCount++;
+        }
+      },
+
+      assert: function(condition, message) {
+        if (!condition) {
+          throw new Error(message || "Assertion failed: condition non vérifiée");
+        }
+      },
+
+      assertEqual: function(actual, expected, message) {
+        if (actual !== expected) {
+          throw new Error((message ? message + " -> " : "") + "Attendu [" + expected + "], mais reçu [" + actual + "]");
+        }
+      },
+
+      assertAlmostEqual: function(actual, expected, epsilon, message) {
+        const eps = epsilon !== undefined ? epsilon : 0.001;
+        if (Math.abs(actual - expected) > eps) {
+          throw new Error((message ? message + " -> " : "") + "Attendu environ [" + expected + "] (eps=" + eps + "), mais reçu [" + actual + "]");
+        }
+      },
+
+      assertTrue: function(actual, message) {
+        this.assertEqual(actual, true, message);
+      },
+
+      assertFalse: function(actual, message) {
+        this.assertEqual(actual, false, message);
+      },
+
+      assertNotNull: function(actual, message) {
+        if (actual === null || actual === undefined) {
+          throw new Error(message || "Attendu non-nul mais reçu " + actual);
+        }
+      },
+
+      renderResults: function() {
+        document.getElementById('statTotal').textContent = this.totalCount;
+        document.getElementById('statPass').textContent = this.passCount;
+        document.getElementById('statFail').textContent = this.failCount;
+        const rate = this.totalCount > 0 ? Math.round((this.passCount / this.totalCount) * 100) : 0;
+        document.getElementById('statRate').textContent = rate + "%";
+        document.getElementById('progressBar').style.width = rate + "%";
+
+        const container = document.getElementById('resultsContainer');
+        container.innerHTML = '';
+
+        this.suites.forEach(function(suite) {
+          const card = document.createElement('div');
+          card.className = 'suite-card';
+
+          const suitePassCount = suite.tests.filter(function(t) { return t.pass; }).length;
+          const header = document.createElement('div');
+          header.className = 'suite-header';
+          header.innerHTML = '<span>' + suite.name + '</span><span>' + suitePassCount + ' / ' + suite.tests.length + ' passés</span>';
+          card.appendChild(header);
+
+          suite.tests.forEach(function(t) {
+            const row = document.createElement('div');
+            row.className = 'test-row';
+            const badgeClass = t.pass ? 'badge-pass' : 'badge-fail';
+            const badgeText = t.pass ? 'PASS' : 'FAIL';
+            row.innerHTML = '<span class="badge ' + badgeClass + '">' + badgeText + '</span><span>' + t.title + '</span>';
+            card.appendChild(row);
+
+            if (!t.pass && t.error) {
+              const errDiv = document.createElement('div');
+              errDiv.className = 'test-error';
+              errDiv.textContent = t.error;
+              card.appendChild(errDiv);
+            }
+          });
+
+          container.appendChild(card);
+        });
+
+        // Donnée lisible pour les analyseurs de sortie
+        document.body.setAttribute('data-test-summary', JSON.stringify({
+          total: this.totalCount,
+          passed: this.passCount,
+          failed: this.failCount,
+          rate: rate
+        }));
+      }
+    };
+
+    window.describe = TestFramework.describe.bind(TestFramework);
+    window.it = TestFramework.it.bind(TestFramework);
+    window.assert = TestFramework.assert.bind(TestFramework);
+    window.assertEqual = TestFramework.assertEqual.bind(TestFramework);
+    window.assertAlmostEqual = TestFramework.assertAlmostEqual.bind(TestFramework);
+    window.assertTrue = TestFramework.assertTrue.bind(TestFramework);
+    window.assertFalse = TestFramework.assertFalse.bind(TestFramework);
+    window.assertNotNull = TestFramework.assertNotNull.bind(TestFramework);
+  </script>
+
+  <!-- Fichiers de suites de tests unitaires et d'intégration -->
+  <script src="config.test.js"></script>
+  <script src="game.test.js"></script>
+  <script src="renderer.test.js"></script>
+
+  <script>
+    // Lancement et affichage
+    TestFramework.renderResults();
+  </script>
+</body>
+</html>
