@@ -4,7 +4,9 @@
   "description": "Empire Fourmi - Jeu de stratégie et de gestion de colonie de fourmis (AAA+ SOLID)",
   "main": "game.js",
   "scripts": {
-    "test": "node --test --experimental-test-coverage tests/config.test.js tests/combat.test.js tests/evolution.test.js tests/symbiosis.test.js tests/game-ui.test.js tests/lot3.test.js tests/game.test.js tests/renderer.test.js tests/world.test.js tests/quota-manager.test.js"
+    "test": "node --test tests/config.test.js tests/combat.test.js tests/evolution.test.js tests/symbiosis.test.js tests/game-ui.test.js tests/lot3.test.js tests/game.test.js tests/renderer.test.js tests/world.test.js tests/quota-manager.test.js",
+    "test:coverage": "node --test --experimental-test-coverage tests/config.test.js tests/combat.test.js tests/evolution.test.js tests/symbiosis.test.js tests/game-ui.test.js tests/lot3.test.js tests/game.test.js tests/renderer.test.js tests/world.test.js tests/quota-manager.test.js",
+    "check:syntax": "node --check config.js game.js renderer.js renderer-effects.js game-ui.js game-world.js symbiosis.js evolution.js combat.js i18n.js"
   },
   "private": true
 }

@@ -1,6 +1,6 @@
 # Contexte du Projet - Empire Fourmi
 
-> **Dernière mise à jour :** 20/10/2026 23:45  
+> **Dernière mise à jour :** 20/10/2026 23:48  
 > **Statut global :** Plan AAA+ à Évolution Infinie, Difficulté Adaptative Anti-Snowball, Profondeur Biologique, Mode Crafting/Montures, PNJ/Lore, Diplomatie Rivale, Pistes Phéromonales, Cataclysmes & Acte VI structuré en **18 Lots (Roadmap v4.1)** dans [`passation/ROADMAP_PASSATION.md`](file:///c:/Users/Lebrun%20David/Documents/Projet/Projet1/passation/ROADMAP_PASSATION.md) + **Règles d'Architecture Senior (`< 2000` lignes/fichier, Zéro Dette, seuil proactif 1500 lignes vérifié) & Garde-fou Automatisé actifs** — **Lots 1 à 7 terminés ✅ | Prochains lots actifs : Lot 8** ([`LOT_8_ATELIER_CRAFTING_ET_EQUIPEMENT.md`](file:///c:/Users/Lebrun%20David/Documents/Projet/Projet1/passation/LOT_8_ATELIER_CRAFTING_ET_EQUIPEMENT.md)) *(Flash High — Atelier & Équipement)* **ou Lot 10** ([`LOT_10_ESPECES_ET_BIOMES.md`](file:///c:/Users/Lebrun%20David/Documents/Projet/Projet1/passation/LOT_10_ESPECES_ET_BIOMES.md)) *(Argon High — Acte IV : Espèces & Biomes)*  
 > **Dépôt GitHub :** `https://github.com/Linkindel/EmpireAnts.git` (branche `main`)
 

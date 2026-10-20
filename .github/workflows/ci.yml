@@ -1,0 +1,99 @@
+name: CI/CD Pipeline - Empire Fourmi
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+# Permissions pour le déploiement GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Permet un seul déploiement concurrentiel
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  # ==========================================
+  # ÉTAPE 1 : Intégration Continue (CI)
+  # ==========================================
+  test-and-lint:
+    name: Tests & Garde-fous Qualité (Node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [ 20.x, 22.x ]
+
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: ⚙️ Configuration de Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+
+      - name: 🔍 Vérification de la syntaxe JS
+        run: |
+          node --check config.js
+          node --check game.js
+          node --check renderer.js
+          node --check renderer-effects.js
+          node --check game-ui.js
+          node --check game-world.js
+          node --check symbiosis.js
+          node --check evolution.js
+          node --check combat.js
+          node --check i18n.js
+
+      - name: 🧪 Exécution de la suite de tests automatisée
+        run: |
+          node --test tests/config.test.js tests/combat.test.js tests/evolution.test.js tests/symbiosis.test.js tests/game-ui.test.js tests/lot3.test.js tests/game.test.js tests/renderer.test.js tests/world.test.js tests/quota-manager.test.js
+
+      - name: 📏 Vérification stricte du plafond d'architecture (< 2000 lignes)
+        run: |
+          echo "Vérification de la taille des fichiers sources..."
+          for file in config.js game.js renderer.js renderer-effects.js game-ui.js game-world.js symbiosis.js evolution.js combat.js i18n.js style.css index.html; do
+            if [ -f "$file" ]; then
+              lines=$(wc -l < "$file")
+              echo "$file: $lines lignes"
+              if [ "$lines" -ge 2000 ]; then
+                echo "❌ ERREUR: Le fichier $file dépasse le plafond strict de 2000 lignes ($lines lignes)."
+                exit 1
+              fi
+            fi
+          done
+          echo "✅ Tous les fichiers respectent le standard d'architecture (< 2000 lignes)."
+
+  # ==========================================
+  # ÉTAPE 2 : Déploiement Continu (CD - Pages)
+  # ==========================================
+  deploy-github-pages:
+    name: 🚀 Déploiement GitHub Pages (Jeu en Ligne)
+    needs: test-and-lint
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Récupération du code
+        uses: actions/checkout@v4
+
+      - name: 🌐 Configuration de GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: 📦 Préparation de l'artefact Web
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: '.'
+
+      - name: 🚀 Déploiement sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
