@@ -1111,9 +1111,11 @@ function writeJsonSafe(filePath, data) {
  */
 function resolveStoragePaths(baseDir = process.cwd()) {
   let normalizedBase = baseDir;
-  const currentBase = path.basename(normalizedBase);
-  if (currentBase === '.agents' || currentBase === 'scripts') {
-    normalizedBase = path.dirname(normalizedBase);
+  const trimmed = normalizedBase.replace(/[\\/]+$/, '');
+  const lastSegment = trimmed.split(/[\\/]/).pop();
+  if (lastSegment === '.agents' || lastSegment === 'scripts') {
+    const lastSlashIdx = Math.max(trimmed.lastIndexOf('/'), trimmed.lastIndexOf('\\'));
+    normalizedBase = lastSlashIdx > 0 ? trimmed.slice(0, lastSlashIdx) : path.dirname(trimmed);
   }
   return {
     statePath: path.join(normalizedBase, '.agents', 'state', 'quota-state.json'),

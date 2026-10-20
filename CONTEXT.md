@@ -52,6 +52,10 @@ Toutes les règles détaillées sont documentées dans `.agents/rules/` (et `.ge
 
 ## 4. Journal des Dernières Modifications
 - **20/10/2026** :
+  - **Mise à jour du [`README.md`](file:///c:/Users/Lebrun%20David/Documents/Projet/Projet1/README.md) pour le dépôt Git (`Linkindel/EmpireAnts`)** :
+    - Rédaction complète et professionnelle du README : badges dynamiques (tests 189/189 passés, couverture > 92%, architecture SOLID < 2000 lignes, licence MIT).
+    - Présentation des fonctionnalités clés : rendu Canvas Mobile AAA & style Fourmiz 3D CGI, simulation des 7 ressources (avec l'Ambre 🟠), exploration infinie (Anneaux & Abîmes), ponts vivants, chantiers réels bornés, système de combat unifié, prestige et synthèse WebAudio procédurale.
+    - Guide de démarrage rapide, tableau des raccourcis clavier, commandes de test et bilinguisme FR/EN.
   - **Exécution Complète du Lot 7 ([`LOT_7_EXPLORATION_INFINIE_ANNEAUX_ET_ABIMES.md`](file:///c:/Users/Lebrun%20David/Documents/Projet/Projet1/passation/LOT_7_EXPLORATION_INFINIE_ANNEAUX_ET_ABIMES.md)) — Exploration Infinie, Anneaux, Abîmes, Ponts Vivants & Scaling Adaptatif** :
     - **Extraction Modulaire Senior SOLID (`game-world.js` — 698 lignes)** :
       - *Générateur procédural unique `generateZone`* : pur et déterministe pour les deux axes (horizontal Anneaux 1 à $\infty$ et vertical Strates des Abîmes 1 à $\infty$). Rétrocompatibilité absolue avec l'Acte I (Anneau 1 = 4 secteurs + Boss Mante Royale). Strates profondes avec paliers de dureté (1 à 5), minéraux (Silex 1-10, Obsidienne > 10), et aléas environnementaux (`chasm_crevasse`, `abyssal_darkness`, `acidic_vapors`, `geothermal_vent`).

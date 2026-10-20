@@ -476,11 +476,12 @@ describe('QuotaManager 5h - Contrats de Hooks Antigravity & CLI', () => {
     assert.equal(resErr, '');
 
     // 5. Test resolveStoragePaths with scripts and .agents
-    const pathAgents = resolveStoragePaths('C:\\Project\\.agents');
-    assert.equal(pathAgents.statePath, 'C:\\Project\\.agents\\state\\quota-state.json');
+    const baseProject = path.join('tmp', 'mock-project');
+    const pathAgents = resolveStoragePaths(path.join(baseProject, '.agents'));
+    assert.equal(pathAgents.statePath, path.join(baseProject, '.agents', 'state', 'quota-state.json'));
 
-    const pathScripts = resolveStoragePaths('C:\\Project\\scripts');
-    assert.equal(pathScripts.statePath, 'C:\\Project\\.agents\\state\\quota-state.json');
+    const pathScripts = resolveStoragePaths(path.join(baseProject, 'scripts'));
+    assert.equal(pathScripts.statePath, path.join(baseProject, '.agents', 'state', 'quota-state.json'));
 
     // 6. Test rootWrapper export
     assert.equal(typeof rootWrapper.runCli, 'function');
