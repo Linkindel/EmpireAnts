@@ -182,10 +182,12 @@
     <span id="countScout">0</span>
     <span id="countWarrior">0</span>
     <span id="countTank">0</span>
+    <span id="countNurse">0</span>
     <button id="btnIncubateWorker"></button>
     <button id="btnIncubateScout"></button>
     <button id="btnIncubateWarrior"></button>
     <button id="btnIncubateTank"></button>
+    <button id="btnIncubateNurse"></button>
 
     <div id="incubationCountBadge">0</div>
     <div id="incubationEmpty"></div>
@@ -251,6 +253,36 @@
     <div id="missionLoot_fourmis_rouges"></div>
     <button id="btnMission_fourmis_rouges"></button>
 
+    <div id="missionRisk_termites_bastion"></div>
+    <div id="missionChance_termites_bastion"></div>
+    <div id="missionLoot_termites_bastion"></div>
+    <button id="btnMission_termites_bastion"></button>
+
+    <div id="missionRisk_mantis_boss"></div>
+    <div id="missionChance_mantis_boss"></div>
+    <div id="missionLoot_mantis_boss"></div>
+    <button id="btnMission_mantis_boss"></button>
+
+    <!-- Événements & Rapport de Bataille (Lot 4) -->
+    <div id="activeEventCard" style="display:none;">
+      <span id="eventCardIcon"></span>
+      <div id="eventCardTitle"></div>
+      <div id="eventCardDesc"></div>
+      <b id="eventCardTimer"></b>
+      <button id="btnEventChoiceA"></button>
+      <button id="btnEventChoiceB"></button>
+    </div>
+
+    <div id="battleReportSection" style="display:none;">
+      <span id="battleReportBadge"></span>
+      <span id="battleReportTarget"></span>
+      <b id="battleReportAlliedPower"></b>
+      <b id="battleReportEnemyPower"></b>
+      <b id="battleReportCounter"></b>
+      <b id="battleReportLosses"></b>
+      <b id="battleReportLoot"></b>
+    </div>
+
     <div id="logContainer"></div>
 
     <div id="desktopTabs">
@@ -267,6 +299,7 @@
 
   <!-- Charger les modules de production -->
   <script src="../config.js"></script>
+  <script src="../combat.js"></script>
   <script src="../renderer.js"></script>
   <script src="../game.js"></script>
 
@@ -398,6 +431,7 @@
 
   <!-- Fichiers de suites de tests unitaires et d'intégration -->
   <script src="config.test.js"></script>
+  <script src="combat.test.js"></script>
   <script src="game.test.js"></script>
   <script src="renderer.test.js"></script>
 

@@ -16,6 +16,7 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Fichiers temporaires
+# Fichiers temporaires et état runtime local des hooks
 *.tmp
 *.bak
+.agents/state/

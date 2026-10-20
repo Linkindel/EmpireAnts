@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banc d'Essai Automatisé des Tests - Empire Fourmi</title>
+  <style>
+    :root {
+      --bg: #12100e;
+      --card-bg: #1c1814;
+      --border: #3d3024;
+      --text: #f5eedc;
+      --text-muted: #a69888;
+      --success: #48bb78;
+      --danger: #f56565;
+      --amber: #f6ad55;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 24px;
+      line-height: 1.5;
+    }
+    .header {
+      max-width: 900px;
+      margin: 0 auto 24px;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+    .header h1 {
+      font-size: 1.6rem;
+      color: var(--amber);
+      margin-bottom: 6px;
+    }
+    .header p {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+    .summary-card {
+      max-width: 900px;
+      margin: 0 auto 24px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 20px;
+      display: flex;
+      gap: 24px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .stat-badge {
+      display: flex;
+      flex-direction: column;
+    }
+    .stat-label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .stat-val {
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+    .stat-val.success { color: var(--success); }
+    .stat-val.danger { color: var(--danger); }
+    .stat-val.rate { color: var(--amber); }
+
+    .test-suites {
+      max-width: 900px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .suite-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    .suite-title {
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+      font-size: 1.05rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .suite-cases {
+      padding: 12px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .test-case {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      font-size: 0.9rem;
+    }
+    .test-icon {
+      font-size: 1rem;
+      line-height: 1.3;
+    }
+    .test-icon.pass { color: var(--success); }
+    .test-icon.fail { color: var(--danger); }
+    .test-name { flex: 1; }
+    .test-error {
+      color: var(--danger);
+      background: rgba(245, 101, 101, 0.1);
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      margin-top: 4px;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>🐜 Empire Fourmi — Banc d'Essai Automatisé des Tests</h1>
+    <p>Exécution autonome des suites de tests unitaires, d'intégration et graphiques (Lot 1 & Lot 2).</p>
+  </div>
+
+  <div class="summary-card" id="summaryCard">
+    <div class="stat-badge">
+      <span class="stat-label">Total Tests</span>
+      <span class="stat-val" id="statTotal">0</span>
+    </div>
+    <div class="stat-badge">
+      <span class="stat-label">Succès</span>
+      <span class="stat-val success" id="statPass">0</span>
+    </div>
+    <div class="stat-badge">
+      <span class="stat-label">Échecs</span>
+      <span class="stat-val danger" id="statFail">0</span>
+    </div>
+    <div class="stat-badge">
+      <span class="stat-label">Taux de Succès</span>
+      <span class="stat-val rate" id="statRate">100%</span>
+    </div>
+    <div class="stat-badge">
+      <span class="stat-label">Conformité (Seuil ≥ 80%)</span>
+      <span class="stat-val success" id="statCompliant">VALIDE ✔</span>
+    </div>
+  </div>
+
+  <div class="test-suites" id="testContainer"></div>
+
+  <!-- Scripts du projet -->
+  <script src="i18n.js"></script>
+  <script src="config.js"></script>
+  <script src="combat.js"></script>
+  <script src="evolution.js"></script>
+  <script src="symbiosis.js"></script>
+  <script src="game-world.js"></script>
+  <script src="game-ui.js"></script>
+  <script src="renderer-effects.js"></script>
+  <script src="renderer.js"></script>
+  <script src="game.js"></script>
+
+  <!-- Moteur léger de tests autonome pour navigateur -->
+  <script>
+    (function() {
+      const suites = [];
+      let currentSuite = null;
+
+      window.describe = function(name, fn) {
+        const suite = { name, cases: [], beforeEachFns: [], afterEachFns: [] };
+        suites.push(suite);
+        const prev = currentSuite;
+        currentSuite = suite;
+        try {
+          fn();
+        } finally {
+          currentSuite = prev;
+        }
+      };
+
+      window.beforeEach = function(fn) {
+        if (currentSuite) currentSuite.beforeEachFns.push(fn);
+      };
+
+      window.afterEach = function(fn) {
+        if (currentSuite) currentSuite.afterEachFns.push(fn);
+      };
+
+      window.it = function(name, fn) {
+        if (currentSuite) {
+          currentSuite.cases.push({ name, fn });
+        }
+      };
+
+      window.assert = {
+        ok: function(val, msg) { if (!val) throw new Error(msg || "Assertion failed: truthy expected"); },
+        equal: function(a, b, msg) { if (a != b) throw new Error(msg || `Expected ${b}, got ${a}`); },
+        strictEqual: function(a, b, msg) { if (a !== b) throw new Error(msg || `Expected ${b} strict, got ${a}`); },
+        notEqual: function(a, b, msg) { if (a == b) throw new Error(msg || `Expected value not to equal ${b}`); },
+        doesNotThrow: function(fn, msg) {
+          try { fn(); } catch (e) { throw new Error(msg || `Expected function not to throw, caught: ${e.message}`); }
+        }
+      };
+
+      window.assertNotNull = (val, msg) => window.assert.ok(val !== null && val !== undefined, msg);
+      window.assertEqual = (a, b, msg) => window.assert.equal(a, b, msg);
+      window.assertTrue = (val, msg) => window.assert.equal(Boolean(val), true, msg);
+      window.assertFalse = (val, msg) => window.assert.equal(Boolean(val), false, msg);
+
+      window.__runColonyTests = async function() {
+        let total = 0, passed = 0, failed = 0;
+        const container = document.getElementById('testContainer');
+        container.innerHTML = '';
+
+        for (const suite of suites) {
+          const suiteEl = document.createElement('div');
+          suiteEl.className = 'suite-card';
+
+          const titleEl = document.createElement('div');
+          titleEl.className = 'suite-title';
+          titleEl.innerHTML = `<span>${suite.name}</span><span id="badge_${suite.name}"></span>`;
+          suiteEl.appendChild(titleEl);
+
+          const casesEl = document.createElement('div');
+          casesEl.className = 'suite-cases';
+
+          let suitePass = 0, suiteFail = 0;
+
+          for (const tc of suite.cases) {
+            total++;
+            // Exécuter beforeEach
+            for (const bFn of suite.beforeEachFns) {
+              try { await bFn(); } catch (e) { console.error('beforeEach error', e); }
+            }
+
+            let pass = true;
+            let errMsg = null;
+            try {
+              await tc.fn();
+              passed++;
+              suitePass++;
+            } catch (err) {
+              pass = false;
+              failed++;
+              suiteFail++;
+              errMsg = err.message || String(err);
+            }
+
+            // Exécuter afterEach
+            for (const aFn of suite.afterEachFns) {
+              try { await aFn(); } catch (e) { console.error('afterEach error', e); }
+            }
+
+            const caseEl = document.createElement('div');
+            caseEl.className = 'test-case';
+            caseEl.innerHTML = `
+              <span class="test-icon ${pass ? 'pass' : 'fail'}">${pass ? '✔' : '✖'}</span>
+              <div class="test-name">
+                <div>${tc.name}</div>
+                ${errMsg ? `<div class="test-error">${errMsg}</div>` : ''}
+              </div>
+            `;
+            casesEl.appendChild(caseEl);
+          }
+
+          suiteEl.appendChild(casesEl);
+          container.appendChild(suiteEl);
+
+          const badgeEl = suiteEl.querySelector('.suite-title span:last-child');
+          if (badgeEl) {
+            badgeEl.textContent = `${suitePass}/${suite.cases.length} validés`;
+            badgeEl.style.color = suiteFail === 0 ? 'var(--success)' : 'var(--danger)';
+          }
+        }
+
+        document.getElementById('statTotal').textContent = total;
+        document.getElementById('statPass').textContent = passed;
+        document.getElementById('statFail').textContent = failed;
+        const rate = total > 0 ? Math.round((passed / total) * 100) : 0;
+        document.getElementById('statRate').textContent = `${rate}%`;
+        const compliantEl = document.getElementById('statCompliant');
+        if (rate >= 80 && failed === 0) {
+          compliantEl.textContent = 'VALIDE ✔ (100% ≥ 80%)';
+          compliantEl.className = 'stat-val success';
+        } else {
+          compliantEl.textContent = `${rate}% (Seuil: 80%)`;
+          compliantEl.className = 'stat-val danger';
+        }
+      };
+    })();
+  </script>
+
+  <!-- Suites de tests converties pour le banc autonome -->
+  <script>
+    // Suite 1: config.js & i18n
+    describe('Configuration - Tokens Initiaux & Structure Générale', function() {
+      it('doit posséder les clés de sauvegarde et de langue', function() {
+        assertNotNull(GAME_CONFIG.SAVE_KEY);
+        assertNotNull(GAME_CONFIG.LANG_KEY);
+      });
+      it('doit initialiser un état de base complet et cohérent', function() {
+        const init = GAME_CONFIG.INITIAL_STATE;
+        assertEqual(init.lang, 'fr');
+        assertTrue(init.soundEnabled);
+        assertTrue(init.food > 0);
+        assertEqual(init.ants.worker, 6);
+        assertEqual(init.rooms.queen, 1);
+      });
+      it('doit contenir les tokens CANVAS_INTERACTION et seasonalDetails du Lot 2', function() {
+        const inter = GAME_CONFIG.CANVAS_INTERACTION;
+        assertTrue(inter.manualHarvestFood > 0);
+        assertTrue(inter.manualHarvestCooldownSeconds > 0);
+        assertTrue(inter.nodeHitRadius > 0);
+        assertTrue(inter.screenShakeDuration > 0);
+        assertTrue(inter.floatingTextDuration > 0);
+        assertNotNull(GAME_CONFIG.CANVAS_THEME.seasonalDetails);
+        assertTrue(GAME_CONFIG.CANVAS_THEME.seasonalDetails.springFlowerCount > 0);
+      });
+      it('doit avoir une parité exacte à 100% entre FR et EN', function() {
+        const frKeys = Object.keys(GAME_CONFIG.I18N.fr);
+        const enKeys = Object.keys(GAME_CONFIG.I18N.en);
+        assertEqual(frKeys.length, enKeys.length);
+        const missingInEn = frKeys.filter(k => GAME_CONFIG.I18N.en[k] === undefined);
+        assertEqual(missingInEn.length, 0);
+      });
+    });
+
+    // Suite 2: Lot 2 - Canvas Living World & Hit-testing pure
+    describe('Lot 2 — Canvas Living World & Détection de Survol (Hit-testing)', function() {
+      const size = { width: 800, height: 600 };
+      const nodes = GAME_CONFIG.CANVAS_THEME.nodes;
+
+      it('doit détecter la chambre royale au centre et à l’intérieur de son ellipse', function() {
+        const hitCenter = hitTestNode(400, 276, nodes, size);
+        assert.ok(hitCenter);
+        assert.equal(hitCenter.nodeId, 'queen');
+        assert.equal(hitCenter.isChamber, true);
+
+        const hitInside = hitTestNode(440, 290, nodes, size);
+        assert.ok(hitInside);
+        assert.equal(hitInside.nodeId, 'queen');
+      });
+
+      it('doit rejeter les coordonnées hors de l’ellipse', function() {
+        const hitOutside = hitTestNode(400, 200, nodes, size);
+        assert.ok(!hitOutside || hitOutside.nodeId !== 'queen');
+      });
+
+      it('doit détecter les zones de récolte en surface (circulaires)', function() {
+        const hitLeft = hitTestNode(96, 105, nodes, size);
+        assert.ok(hitLeft);
+        assert.equal(hitLeft.nodeId, 'surface_left');
+        assert.equal(hitLeft.isChamber, false);
+      });
+
+      it('doit être résilient aux entrées invalides (null, NaN, canvas négatif)', function() {
+        assert.equal(hitTestNode(null, 100), null);
+        assert.equal(hitTestNode(100, NaN), null);
+        assert.equal(hitTestNode(100, 100, nodes, { width: 0, height: 600 }), null);
+        assert.equal(hitTestNode(100, 100, null), null);
+      });
+    });
+
+    // Suite 3: Lot 2 - Textes Flottants, Screen Shake & Particules
+    describe('Lot 2 — Juice Visuel (Textes Flottants, Screen Shake, Particules)', function() {
+      it('doit faire évoluer les textes flottants et les purger', function() {
+        spawnCanvasFloatingText('granary', '+15 🍃', '#48bb78');
+        assert.equal(floatingTexts.length, 1);
+        assert.equal(floatingTexts[0].text, '+15 🍃');
+        updateAndDrawFloatingTexts();
+        floatingTexts[0].life = 1;
+        updateAndDrawFloatingTexts();
+        assert.equal(floatingTexts.length, 0);
+      });
+
+      it('doit activer le Screen Shake sans erreur', function() {
+        triggerScreenShake(6, 18);
+        assert.doesNotThrow(() => {
+          renderCanvasLoop(1000);
+        });
+      });
+
+      it('doit dessiner les phéromones et spores selon la colonie', function() {
+        gameState.ants = { worker: 8, scout: 2 };
+        gameState.rooms.fungus = 1;
+        assert.doesNotThrow(() => {
+          drawPheromoneTrails(1000, 800, 600);
+          drawBioluminescentSpores(1000);
+        });
+      });
+    });
+
+    // Suite 4: Lot 2 - Récolte Manuelle Active & Événements
+    describe('Lot 2 — Récolte Manuelle Active & Actions Interactives', function() {
+      beforeEach(() => {
+        Object.assign(gameState, createFreshGameState());
+      });
+
+      it('doit récolter des ressources avec cooldown sur surface_left et surface_right', function() {
+        const now = 1000;
+        const prevFood = gameState.food;
+        const res = harvestSurfaceDeposit('left', now);
+        assert.equal(res.success, true);
+        assert.equal(gameState.food, prevFood + GAME_CONFIG.CANVAS_INTERACTION.manualHarvestFood);
+
+        // Tentative immédiate rejetée
+        const resWait = harvestSurfaceDeposit('left', now + 1);
+        assert.equal(resWait.success, false);
+        assert.equal(resWait.reason, 'cooldown');
+
+        // Récolte autorisée sur surface_right
+        const resRight = harvestSurfaceDeposit('right', now + 1);
+        assert.equal(resRight.success, true);
+      });
+
+      it('doit gérer le clic et les gestes tactiles sur mobile', function() {
+        let harvested = null;
+        let selectedRoom = null;
+        let upgradedRoom = null;
+        globalThis.harvestSurfaceDeposit = (k) => { harvested = k; };
+        globalThis.selectRoomInUI = (k) => { selectedRoom = k; };
+        globalThis.upgradeRoom = (k) => { upgradedRoom = k; };
+
+        // Clic sur surface_left
+        handleCanvasClick({ clientX: 96, clientY: 105 });
+        assert.equal(harvested, 'left');
+
+        // Clic simple sur queen -> selectRoomInUI
+        handleCanvasClick({ clientX: 400, clientY: 276, shiftKey: false });
+        assert.equal(selectedRoom, 'queen');
+
+        // Clic avec Shift sur queen -> upgradeRoom
+        handleCanvasClick({ clientX: 400, clientY: 276, shiftKey: true });
+        assert.equal(upgradedRoom, 'queen');
+
+        delete globalThis.harvestSurfaceDeposit;
+        delete globalThis.selectRoomInUI;
+        delete globalThis.upgradeRoom;
+      });
+    });
+
+    // Suite 5: Lot 6 - Moteur d'Évolution, Arbre Génétique & Programmation Défensive
+    describe('Lot 6 — Moteur d’Évolution, Arbre Génétique & Prérequis', function() {
+      let baseState;
+
+      beforeEach(() => {
+        baseState = {
+          food: 100,
+          pheromone: 100,
+          mutations: {},
+          stats: { totalMutationsUnlocked: 0 }
+        };
+      });
+
+      it('doit calculer les totaux de population et de salles défensivement', function() {
+        assert.equal(getTotalAnts(null), 0);
+        assert.equal(getTotalAnts({ ants: { worker: 10, warrior: 5 } }), 15);
+        assert.equal(getTotalRoomLevels(null), 0);
+        assert.equal(getTotalRoomLevels({ rooms: { queen: 3, dorm: 2 } }), 5);
+      });
+
+      it('doit formater les grands nombres de façon compacte', function() {
+        assert.equal(formatNumberCompact(null), '0');
+        assert.equal(formatNumberCompact(1500), '1.5K');
+        assert.equal(formatNumberCompact(2000000), '2M');
+      });
+
+      it('doit vérifier les prérequis d’arbre génétique et les phéromones', function() {
+        // Prérequis manquant
+        const checkCarapace = canUnlockMutation('carapace', baseState, GAME_CONFIG);
+        assert.equal(checkCarapace.canUnlock, false);
+        assert.equal(checkCarapace.reason, 'MISSING_PREREQUISITE');
+
+        // Phéromones insuffisantes
+        baseState.pheromone = 5;
+        const checkMandibules = canUnlockMutation('mandibules', baseState, GAME_CONFIG);
+        assert.equal(checkMandibules.canUnlock, false);
+        assert.equal(checkMandibules.reason, 'INSUFFICIENT_PHEROMONE');
+      });
+
+      it('doit débloquer purement les mutations sans altérer l’état source', function() {
+        baseState.pheromone = 100;
+        const res = unlockMutationPure('mandibules', baseState, GAME_CONFIG);
+        assert.equal(res.success, true);
+        assert.equal(baseState.pheromone, 100);
+        assert.equal(res.nextState.pheromone, 75);
+        assert.equal(res.nextState.mutations.mandibules, true);
+        assert.equal(res.nextState.stats.totalMutationsUnlocked, 1);
+      });
+    });
+
+    // Suite 6: Lot 6 - Hauts Faits & Prestige 1 Vol Nuptial
+    describe('Lot 6 — Hauts Faits, Vol Nuptial & Planificateur Transparent', function() {
+      it('doit évaluer les hauts faits et octroyer les récompenses en phéromones', function() {
+        const state = {
+          food: 500,
+          ants: { worker: 30, scout: 10, warrior: 10 },
+          rooms: { queen: 3, granary: 3, dorm: 3 },
+          mutations: { mandibules: true, carapace: true, acide: true },
+          stats: { totalAntsHatched: 5, totalRaidsDefeated: 3, winterSurvived: 1 },
+          bossesDefeated: { mantis: true },
+          achievements: {}
+        };
+        const evalRes = evaluateAchievements(state, GAME_CONFIG);
+        assert.ok(evalRes.unlockedKeys.length >= 6);
+        assert.ok(evalRes.totalRewardsPheromone > 0);
+      });
+
+      it('doit gérer les conditions et calculer le gain d’ADN Royal', function() {
+        const state = {
+          day: 10,
+          food: 200,
+          pheromone: 50,
+          ants: { worker: 30, scout: 10, warrior: 10, tank: 5 }, // Pop = 55 (>= 50)
+          rooms: { queen: 5, granary: 3, dorm: 4 }, // Queen = 5 (>= 5)
+          stats: { totalDaysSurvived: 10, prestigesCount: 0 },
+          bossesDefeated: { mantis: true },
+          achievements: { first_hatch: true }
+        };
+
+        const check = canTriggerNuptialFlight(state, GAME_CONFIG);
+        assert.equal(check.canTrigger, true);
+
+        const gain = computeRoyalDnaGain(state, GAME_CONFIG);
+        assert.ok(gain >= 10);
+
+        const preview = getNuptialFlightPreview(state, GAME_CONFIG);
+        assert.equal(preview.canTrigger, true);
+        assert.ok(preview.breakdown.population.points > 0);
+        assert.ok(preview.nextBreakpoint.missingAmount > 0);
+      });
+
+      it('doit exécuter le vol nuptial et conserver la méta-progression', function() {
+        const state = {
+          day: 12,
+          food: 250,
+          pheromone: 40,
+          ants: { worker: 30, scout: 10, warrior: 10, tank: 5 },
+          rooms: { queen: 5, granary: 3, dorm: 4 },
+          stats: { totalDaysSurvived: 12, prestigesCount: 0, totalRoyalDnaEarned: 0 },
+          bossesDefeated: {},
+          achievements: { first_hatch: true },
+          royalDna: 0,
+          lang: 'fr',
+          soundEnabled: true
+        };
+
+        const res = executeNuptialFlightPure(state, GAME_CONFIG);
+        assert.equal(res.success, true);
+        assert.ok(res.gainedDna > 0);
+        assert.equal(res.nextState.rooms.queen, 1);
+        assert.equal(res.nextState.royalDna, res.gainedDna);
+        assert.equal(res.nextState.stats.prestigesCount, 1);
+        assert.ok(res.nextState.achievements.first_hatch);
+        assert.ok(res.nextState.achievements.dynasty_founder);
+      });
+    });
+
+    describe('Lot 3 : UX Command Center, Audio & Boussole d\'Objectifs', function() {
+      it('doit formater les nombres avec formatLargeNumber (K, M, NaN, Infinity)', function() {
+        assert.equal(formatLargeNumber(0, 'fr'), '0');
+        assert.equal(formatLargeNumber(1500, 'fr'), '1,5K');
+        assert.equal(formatLargeNumber(1500, 'en'), '1.5K');
+        assert.equal(formatLargeNumber(2500000, 'fr'), '2,5M');
+        assert.equal(formatLargeNumber(-500, 'fr'), '-500');
+        assert.equal(formatLargeNumber(NaN, 'fr'), '0');
+        assert.equal(formatLargeNumber(Infinity, 'fr'), 'Infini');
+        assert.equal(formatLargeNumber(Infinity, 'en'), 'Infinity');
+      });
+
+      it('doit calculer getEconomyBreakdown avec ETA et assertion getNetFoodPerSec', function() {
+        const state = {
+          food: 80,
+          maxFood: 200,
+          pheromone: 10,
+          ants: { worker: 8, scout: 2, warrior: 2, tank: 1, nurse: 1 },
+          rooms: { fungus: 1, granary: 1, dorm: 1, queen: 1 },
+          mutations: {}
+        };
+        const bd = getEconomyBreakdown(state);
+        assert.ok(bd.food);
+        assert.ok(bd.food.income.total > 0);
+        assert.ok(bd.food.expense.total > 0);
+        assert.ok(bd.food.timeToFull !== null || bd.food.timeToEmpty !== null);
+      });
+
+      it('doit évaluer la boussole d\'objectifs getNextMilestoneGoal', function() {
+        const state = {
+          food: 50,
+          ants: { worker: 6, scout: 2, warrior: 2, tank: 1, nurse: 0 },
+          rooms: { barricade: 0, fungus: 0 },
+          bossesDefeated: { mantis: false },
+          royalDna: 0
+        };
+        const goals = getNextMilestoneGoal(state);
+        assert.ok(goals.shortTerm);
+        assert.ok(goals.major);
+        assert.equal(goals.shortTerm.id, 'first_ants');
+        assert.equal(goals.shortTerm.progress, 11);
+        assert.equal(goals.shortTerm.max, 15);
+      });
+
+      it('doit calculer le compte à rebours d\'objectif computeTargetEta', function() {
+        const state = {
+          food: 40,
+          maxFood: 200,
+          ants: { worker: 10, scout: 1, warrior: 0, tank: 0, nurse: 0 },
+          rooms: { fungus: 0 },
+          mutations: {}
+        };
+        const eta = computeTargetEta(state, { type: 'room', id: 'fungus' });
+        assert.ok(eta);
+        assert.equal(eta.cost, 55);
+        assert.equal(eta.ready, false);
+        assert.ok(eta.etaSeconds > 0);
+      });
+
+      it('doit calculer les badges d\'onglets computeTabBadges', function() {
+        const richState = {
+          food: 500,
+          pheromone: 50,
+          rooms: { queen: 1, granary: 1, dorm: 1, barricade: 0, fungus: 0 },
+          mutations: {}
+        };
+        const badges = computeTabBadges(richState);
+        assert.equal(badges.colony, true);
+      });
+
+      it('doit migrer la sauvegarde vers SCHEMA_VERSION: 5 avec 6 ressources', function() {
+        const oldState = {
+          schemaVersion: 4,
+          food: 50,
+          pheromone: 10,
+          ants: { worker: 6, scout: 2, warrior: 2, tank: 1, nurse: 0 },
+          rooms: { queen: 1, granary: 1, dorm: 1 }
+        };
+        const sanitized = sanitizeGameState(oldState, GAME_CONFIG.INITIAL_STATE);
+        assert.equal(sanitized.schemaVersion, 5);
+        assert.ok(sanitized.resources);
+        assert.equal(sanitized.resources.food, 50);
+        assert.equal(sanitized.resources.twigs, 0);
+        assert.equal(sanitized.resources.honeydew, 0);
+        assert.equal(sanitized.resources.chitin, 0);
+        assert.equal(sanitized.resources.spores, 0);
+        assert.equal(sanitized.incubationMultiplier, 1);
+        assert.equal(sanitized.activeTab, 'colony');
+      });
+    });
+
+    describe('Lot 5 : Économie Symbiotique, Chantiers Bornés & Paliers d\'Ères', function() {
+      it('doit calculer les durées de chantiers asymptotiques bornées (30s à 7200s, min 5s)', function() {
+        const stateBase = { rooms: { masonry_hall: 0 }, workerRoles: { mason: 0 }, honeyBoostTimer: 0 };
+        const dur1 = computeConstructionTime('granary', 1, stateBase, GAME_CONFIG);
+        const dur100 = computeConstructionTime('granary', 100, stateBase, GAME_CONFIG);
+        assert.equal(dur1, 30);
+        assert.ok(dur100 <= 7200);
+        assert.ok(dur100 > 30);
+
+        const stateFast = { rooms: { masonry_hall: 20 }, workerRoles: { mason: 50 }, honeyBoostTimer: 300 };
+        const durMin = computeConstructionTime('granary', 1, stateFast, GAME_CONFIG);
+        assert.equal(durMin, 5);
+      });
+
+      it('doit calculer les limites de chantiers simultanés selon masonry_hall', function() {
+        assert.equal(getConstructionLimits({ rooms: { masonry_hall: 0 } }, GAME_CONFIG).maxActive, 1);
+        assert.equal(getConstructionLimits({ rooms: { masonry_hall: 1 } }, GAME_CONFIG).maxQueued, 2);
+        assert.equal(getConstructionLimits({ rooms: { masonry_hall: 3 } }, GAME_CONFIG).maxActive, 2);
+        assert.equal(getConstructionLimits({ rooms: { masonry_hall: 5 } }, GAME_CONFIG).maxActive, 3);
+      });
+
+      it('doit évaluer l\'Harmonie Symbiotique et les bonus incubation/organique', function() {
+        const stateHarm = {
+          workerRoles: { harvester: 5, breeder: 5, grower: 5, mason: 5 },
+          ants: { nurse: 5 }
+        };
+        const harmony = computeSymbiosisHarmony(stateHarm, GAME_CONFIG);
+        assert.equal(harmony.harmonyScore, 1.0);
+        assert.ok(harmony.incubationBonus > 0);
+        assert.ok(harmony.organicBonus > 0);
+      });
+
+      it('doit assigner les rôles d\'ouvrières sans fuite de population', function() {
+        const currentRoles = { harvester: 6, breeder: 0, grower: 0, mason: 0 };
+        const res = assignWorkerRolePure(currentRoles, 6, 'breeder', 2);
+        assert.equal(res.harvester, 4);
+        assert.equal(res.breeder, 2);
+        assert.equal(res.harvester + res.breeder + res.grower + res.mason, 6);
+      });
+
+      it('doit recycler les pertes et vaincus de combat en compost fongique', function() {
+        const compost = recycleCombatBiomass({ ants: { worker: 4, warrior: 2 } }, 50, GAME_CONFIG);
+        assert.ok(compost.spores > 0);
+        assert.ok(compost.chitin > 0);
+      });
+
+      it('doit évaluer les paliers d\'ères architecturales des salles', function() {
+        const rooms = { queen: 25, granary: 10, aphid_farm: 10 };
+        const bonuses = evaluateRoomMilestoneBonuses(rooms, GAME_CONFIG);
+        assert.ok(bonuses.unlockedCount >= 3);
+        assert.ok(bonuses.upkeepReduction > 0);
+      });
+
+      it('doit exécuter le cycle de vie d\'un chantier réel dans gameState', function() {
+        const state = {
+          food: 500,
+          maxFood: 200,
+          resources: { food: 500, honeydew: 50, chitin: 10, spores: 10, twigs: 10 },
+          rooms: { granary: 1, masonry_hall: 0 },
+          activeConstructions: [],
+          buildQueue: [],
+          workerRoles: { harvester: 6, breeder: 0, grower: 0, mason: 0 },
+          honeyBoostTimer: 0
+        };
+
+        const res = startRoomConstruction('granary', state, GAME_CONFIG);
+        assert.equal(res.success, true);
+        assert.equal(state.activeConstructions.length, 1);
+
+        const completed = tickConstructions(state, 5000, GAME_CONFIG);
+        assert.equal(completed.length, 1);
+        assert.equal(state.rooms.granary, 2);
+        assert.ok(state.maxFood > 200);
+      });
+    });
+
+    describe('Lot 7 — Exploration Infinie, Anneaux, Abîmes & Reliques', function() {
+      it('doit générer les paliers super-exponentiels et les anneaux procéduraux', function() {
+        assert.ok(computeTierGateMultiplier(10) > 1);
+        const r1 = generateZone({ axis: 'ring', level: 1 });
+        assert.equal(r1.sectors.length, 4);
+        assert.equal(r1.guardian.id, 'mantis_boss');
+
+        const r2 = generateZone({ axis: 'ring', level: 2 });
+        assert.equal(r2.sectors.length, 4);
+        assert.ok(r2.guardian.loot.amber > 0);
+      });
+
+      it('doit gérer les ponts vivants et bonus de récolte', function() {
+        const s = { ants: { worker: 8 }, exploration: { livingBridges: { surfaceHarvest: false } } };
+        const res = formLivingBridge(s, 'surface');
+        assert.equal(res.success, true);
+        assert.equal(res.nextState.exploration.livingBridges.surfaceHarvest, true);
+        const mods = computeRelicModifiers(res.nextState);
+        assert.equal(mods.livingBridgeHarvestBonus, 0.25);
+      });
+
+      it('doit améliorer les reliques et conserver l\'Ambre au vol nuptial', function() {
+        const s = {
+          resources: { amber: 30 },
+          amber: 30,
+          royalDna: 2,
+          rooms: { queen: 5 },
+          ants: { worker: 50 },
+          exploration: { relics: { queen_amber: 0 } }
+        };
+        const up = upgradeRelicPure(s, 'queen_amber');
+        assert.equal(up.success, true);
+        assert.equal(up.nextState.exploration.relics.queen_amber, 1);
+
+        const post = executeNuptialFlightPure(up.nextState);
+        assert.equal(post.success, true);
+        assert.equal(post.nextState.resources.amber, up.nextState.resources.amber);
+        assert.equal(post.nextState.exploration.relics.queen_amber, 1);
+      });
+
+      it('doit forer les strates d\'abîmes avec détection de gardien', function() {
+        const s = { exploration: { abyssDepth: 4 } };
+        const res = drillStratumPure(s);
+        assert.equal(res.success, true);
+        assert.equal(res.nextState.exploration.abyssDepth, 5);
+        assert.equal(res.stratumInfo.isGuardian, true);
+      });
+    });
+
+    // Lancer les tests au chargement
+    window.addEventListener('DOMContentLoaded', () => {
+      window.__runColonyTests();
+    });
+  </script>
+</body>
+</html>

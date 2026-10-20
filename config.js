@@ -3,17 +3,64 @@
  * Toutes les valeurs d'équilibrage, de coûts, de combats, de saisons, de thème Canvas et de traductions sont réunies ici.
  */
 
+/* c8 ignore next 6 */
+if (typeof GAME_CONFIG_I18N === 'undefined' && typeof require === 'function') {
+  try {
+    const i18nMod = require('./i18n.js');
+    globalThis.GAME_CONFIG_I18N = i18nMod.GAME_CONFIG_I18N;
+    if (i18nMod.t) globalThis.t = i18nMod.t;
+  } catch (e) {}
+}
+
 const GAME_CONFIG = {
+  SCHEMA_VERSION: 5,
   SAVE_KEY: 'ant_empire_save_v1',
   LANG_KEY: 'ant_empire_lang',
 
   // --- ÉTAT INITIAL ---
   INITIAL_STATE: {
+    schemaVersion: 5,
+    lastSavedAt: null,
     lang: 'fr',
     soundEnabled: true,
+    ambienceEnabled: true,
+    resources: {
+      food: 120,
+      pheromone: 20,
+      twigs: 0,
+      honeydew: 0,
+      chitin: 0,
+      spores: 0,
+      amber: 0
+    },
     food: 120,
     maxFood: 180,
     pheromone: 20,
+    twigs: 0,
+    honeydew: 0,
+    chitin: 0,
+    spores: 0,
+    amber: 0,
+    workerRoles: {
+      harvester: 6,
+      breeder: 0,
+      grower: 0,
+      mason: 0
+    },
+    activeConstructions: [],
+    buildQueue: [],
+    honeyBoostTimer: 0,
+    domeVentilation: 'open',
+    queenDiet: 'standard',
+    incubationMultiplier: 1,
+    activeTab: 'colony',
+    activeSubtabs: {
+      colony: 'nursery',
+      army: 'squad',
+      evolution: 'mutations',
+      workshop: 'forge',
+      world: 'trading'
+    },
     queenHealth: 100,
     maxQueenHealth: 100,
     day: 1,
@@ -23,14 +70,17 @@ const GAME_CONFIG = {
       worker: 6,
       scout: 2,
       warrior: 2,
-      tank: 1
+      tank: 1,
+      nurse: 0
     },
     rooms: {
       queen: 1,
       granary: 1,
       dorm: 1,
       barricade: 0,
-      fungus: 0
+      fungus: 0,
+      aphid_farm: 0,
+      masonry_hall: 0
     },
     squad: {
       tank: 0,
@@ -38,12 +88,67 @@ const GAME_CONFIG = {
       scout: 0,
       doctrine: 'balanced'
     },
+    royalDna: 0,
+    stats: {
+      totalAntsHatched: 0,
+      totalRaidsDefeated: 0,
+      totalBossesDefeated: 0,
+      totalDaysSurvived: 0,
+      totalFoodHarvested: 0,
+      totalPheromonesEarned: 0,
+      totalMutationsUnlocked: 0,
+      winterSurvived: 0,
+      highestPopReached: 11,
+      prestigesCount: 0,
+      totalRoyalDnaEarned: 0
+    },
+    achievements: {},
     mutations: {
       mandibules: false,
       carapace: false,
-      acide: false
+      acide: false,
+      royal_exo: false,
+      trophallaxis: false,
+      mycology: false,
+      preservation: false,
+      antennae: false,
+      thermal_brood: false,
+      imperial_fervor: false
     },
-    nextRaidTimer: 140
+    nextRaidTimer: 140,
+    nextRaidFaction: 'fire_ants',
+    nextEventTimer: 75,
+    activeEvent: null,
+    lastBattleReport: null,
+    bossesDefeated: {
+      mantis: false
+    },
+    settings: {
+      screenShakeEnabled: true,
+      particleDensity: 'normal',
+      numberNotation: 'standard'
+    },
+    pinnedTarget: null,
+    exploration: {
+      currentRing: 1,
+      unlockedRing: 1,
+      ringSectorsCleared: {},
+      ringGuardiansDefeated: {},
+      abyssDepth: 0,
+      maxAbyssDepth: 0,
+      abyssGuardiansDefeated: {},
+      activeHazard: null,
+      livingBridges: {
+        surfaceHarvest: false,
+        activeBridgeWorkers: 0
+      },
+      relics: {
+        queen_amber: 0,
+        fossil_mandible: 0,
+        eternal_spore: 0,
+        solar_sap: 0
+      }
+    }
   },
 
   // --- ÉCONOMIE & CYCLE TEMPOREL ---
@@ -60,7 +165,307 @@ const GAME_CONFIG = {
     autoSpawnFoodCost: 5,
     autoSpawnBaseChance: 0.05,
     autoSpawnQueenRoomBonusChance: 0.03,
-    queenIncubationSpeedPerLevel: 0.20
+    queenIncubationSpeedPerLevel: 0.20,
+    maxOfflineSeconds: 28800,
+    minOfflineReportSeconds: 15,
+    offlineEfficiencyRatio: 0.75
+  },
+
+  // --- REGISTRE DE RESSOURCES GÉNÉRIQUE (Lots 3 & 5 - Économie Symbiotique) ---
+  RESOURCES: {
+    food: {
+      id: 'food',
+      icon: '🍃',
+      tier: 0,
+      i18nKey: 'res.food',
+      hasCap: true,
+      hudVisible: true,
+      unlockCondition: null
+    },
+    pheromone: {
+      id: 'pheromone',
+      icon: '🧪',
+      tier: 0,
+      i18nKey: 'res.phero',
+      hasCap: false,
+      hudVisible: true,
+      unlockCondition: null
+    },
+    twigs: {
+      id: 'twigs',
+      icon: '🌿',
+      tier: 1,
+      i18nKey: 'res.twigs',
+      hasCap: false,
+      hudVisible: true,
+      unlockCondition: null
+    },
+    honeydew: {
+      id: 'honeydew',
+      icon: '🍯',
+      tier: 1,
+      i18nKey: 'res.honeydew',
+      hasCap: false,
+      hudVisible: true,
+      unlockCondition: null
+    },
+    chitin: {
+      id: 'chitin',
+      icon: '🪲',
+      tier: 3,
+      i18nKey: 'res.chitin',
+      hasCap: false,
+      hudVisible: true,
+      unlockCondition: null
+    },
+    spores: {
+      id: 'spores',
+      icon: '✨',
+      tier: 3,
+      i18nKey: 'res.spores',
+      hasCap: false,
+      hudVisible: true,
+      unlockCondition: null
+    },
+    amber: {
+      id: 'amber',
+      icon: '🟠',
+      tier: 2,
+      i18nKey: 'res.amber',
+      hasCap: false,
+      hudVisible: true,
+      unlockCondition: null
+    }
+  },
+
+  // --- FORMAT DES NOMBRES & NOTATION (Lot 3 - Grands Nombres AAA+) ---
+  NUMBER_FORMAT: {
+    suffixes: ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc'],
+    scientificThreshold: 1e36,
+    maxDecimals: 2
+  },
+
+  // --- BOUSSOLE D'OBJECTIFS DYNAMIQUE & CAP IMPÉRIAL (Lot 3) ---
+  MILESTONE_GOALS: {
+    shortTerm: [
+      { id: 'first_ants', type: 'ants_total', target: 15, i18nKey: 'goal.short.first_ants' },
+      { id: 'upgrade_barricade', type: 'room_level', room: 'barricade', target: 2, i18nKey: 'goal.short.upgrade_barricade' },
+      { id: 'upgrade_fungus', type: 'room_level', room: 'fungus', target: 1, i18nKey: 'goal.short.upgrade_fungus' },
+      { id: 'army_squad', type: 'squad_strength', target: { warrior: 3, tank: 1 }, i18nKey: 'goal.short.army_squad' },
+      { id: 'stockpile_food', type: 'resource', resource: 'food', target: 150, i18nKey: 'goal.short.stockpile_food' }
+    ],
+    majorMilestones: [
+      { id: 'act1_boss', type: 'boss', bossId: 'mantis', target: 1, i18nKey: 'goal.major.act1_boss' },
+      { id: 'pop_milestone_50', type: 'ants_total', target: 50, i18nKey: 'goal.major.pop_50' },
+      { id: 'nuptial_flight', type: 'prestige', target: 1, i18nKey: 'goal.major.nuptial_flight' }
+    ]
+  },
+
+  // --- NAVIGATION PAR PANNEAUX & SOUS-ONGLETS (Lot 3 - UI Extensible) ---
+  UI_PANELS: {
+    colony: {
+      id: 'colony',
+      icon: '🐜',
+      i18nKey: 'tab.colony',
+      parent: null,
+      order: 1,
+      unlockCondition: null
+    },
+    army: {
+      id: 'army',
+      icon: '⚔️',
+      i18nKey: 'tab.army',
+      parent: null,
+      order: 2,
+      unlockCondition: null
+    },
+    evolution: {
+      id: 'evolution',
+      icon: '🧬',
+      i18nKey: 'tab.evolution',
+      parent: null,
+      order: 3,
+      unlockCondition: null
+    },
+    workshop: {
+      id: 'workshop',
+      icon: '🛠️',
+      i18nKey: 'tab.workshop',
+      parent: null,
+      order: 4,
+      unlockCondition: function (state) {
+        return Boolean(state && state.rooms && state.rooms.workshop > 0);
+      }
+    },
+    world: {
+      id: 'world',
+      icon: '🌍',
+      i18nKey: 'tab.world',
+      parent: null,
+      order: 5,
+      unlockCondition: function (state) {
+        return Boolean(state && state.worldUnlocked);
+      }
+    },
+    log: {
+      id: 'log',
+      icon: '📜',
+      i18nKey: 'tab.log',
+      parent: null,
+      order: 6,
+      unlockCondition: null
+    },
+
+    // Sous-onglets (enfants)
+    nursery: {
+      id: 'nursery',
+      icon: '🥚',
+      i18nKey: 'subtab.nursery',
+      parent: 'colony',
+      order: 1,
+      unlockCondition: null
+    },
+    rooms: {
+      id: 'rooms',
+      icon: '🏛️',
+      i18nKey: 'subtab.rooms',
+      parent: 'colony',
+      order: 2,
+      unlockCondition: null
+    },
+    jobs: {
+      id: 'jobs',
+      icon: '🌾',
+      i18nKey: 'subtab.jobs',
+      parent: 'colony',
+      order: 3,
+      unlockCondition: function (state) {
+        return Boolean(state && state.jobsUnlocked);
+      }
+    },
+    squad: {
+      id: 'squad',
+      icon: '🛡️',
+      i18nKey: 'subtab.squad',
+      parent: 'army',
+      order: 1,
+      unlockCondition: null
+    },
+    battle_report: {
+      id: 'battle_report',
+      icon: '📊',
+      i18nKey: 'subtab.battle_report',
+      parent: 'army',
+      order: 2,
+      unlockCondition: function (state) {
+        return Boolean(state && state.lastBattleReport);
+      }
+    },
+    exploration: {
+      id: 'exploration',
+      icon: '🗺️',
+      i18nKey: 'subtab.exploration',
+      parent: 'army',
+      order: 3,
+      unlockCondition: function (state) {
+        return Boolean(state && (state.abyssUnlocked || state.exploration || state.day >= 1));
+      }
+    },
+    mutations: {
+      id: 'mutations',
+      icon: '🧬',
+      i18nKey: 'subtab.mutations',
+      parent: 'evolution',
+      order: 1,
+      unlockCondition: null
+    },
+    achievements: {
+      id: 'achievements',
+      icon: '🏆',
+      i18nKey: 'subtab.achievements',
+      parent: 'evolution',
+      order: 2,
+      unlockCondition: function (state) {
+        return Boolean(state && state.achievementsUnlocked);
+      }
+    },
+    dynasty: {
+      id: 'dynasty',
+      icon: '👑',
+      i18nKey: 'subtab.dynasty',
+      parent: 'evolution',
+      order: 3,
+      unlockCondition: function (state) {
+        return Boolean(state && state.dynastyUnlocked);
+      }
+    }
+  },
+
+  // --- RACCOURCIS CLAVIER (Lot 3 - Commandes Rapides) ---
+  KEYBINDINGS: {
+    pause: ' ',
+    speed1: '1',
+    speed2: '2',
+    speed3: '3',
+    tabColony: 'Alt+1',
+    tabArmy: 'Alt+2',
+    tabEvolution: 'Alt+3',
+    tabWorkshop: 'Alt+4',
+    tabWorld: 'Alt+5',
+    tabLog: 'Alt+6'
+  },
+
+  // --- MOTEUR AUDIO PROCÉDURAL WEBAUDIO (Lot 3) ---
+  AUDIO: {
+    enabled: true,
+    masterVolume: 0.15,
+    pitchJitter: 0.04,
+    sfx: {
+      click:     { type: 'sine', startFreq: 520, endFreq: 680, duration: 0.06, volume: 0.06 },
+      harvest:   { type: 'triangle', startFreq: 280, endFreq: 520, duration: 0.08, volume: 0.08 },
+      hatch:     { type: 'triangle', startFreq: 440, endFreq: 880, duration: 0.14, volume: 0.08 },
+      upgrade:   { type: 'chord', notes: [523.25, 659.25, 783.99], duration: 0.28, volume: 0.08 },
+      raid_alert:{ type: 'sawtooth', startFreq: 180, endFreq: 130, duration: 0.35, volume: 0.10 },
+      victory:   { type: 'fanfare', notes: [440, 554.37, 659.25, 880], duration: 0.40, volume: 0.09 },
+      defeat:    { type: 'sawtooth', startFreq: 300, endFreq: 110, duration: 0.45, volume: 0.10 }
+    },
+    ambience: {
+      enabled: true,
+      volume: 0.04,
+      filterFreq: 180,
+      layers: {
+        undergroundDrone: { type: 'brown_noise', filterFreq: 180, volume: 0.04 },
+        summerStridulations: { season: 'summer', freq: 4200, pulseRate: 8, volume: 0.02 },
+        winterWind: { season: 'winter', filterFreq: 320, volume: 0.03 },
+        raidWarDrums: { triggerSec: 20, tempoBpm: 120, volume: 0.08 }
+      }
+    }
+  },
+
+  // --- INTERACTION CANVAS & GAME FEEL (LOT 2) ---
+  CANVAS_INTERACTION: {
+    nodeHitRadius: 28,
+    manualHarvestFood: 5,
+    manualHarvestCooldownSeconds: 3,
+    haloColor: 'rgba(246, 173, 85, 0.45)',
+    haloHoverRadiusExtra: 8,
+    screenShakeDuration: 18,
+    screenShakeIntensity: 5.5,
+    floatingTextDuration: 75,
+    floatingTextSpeed: 0.65,
+    pheromonePulseSpeed: 0.0035,
+    pheromoneDotSpacing: 14,
+    tooltip: {
+      bg: 'rgba(20, 16, 12, 0.92)',
+      border: '#f6ad55',
+      titleColor: '#ecc94b',
+      textColor: '#e2e8f0',
+      hintColor: '#a0aec0',
+      fontSizeTitle: 12,
+      fontSizeText: 10,
+      width: 170,
+      padding: 10
+    }
   },
 
   // --- SYSTÈME DES 4 SAISONS ---
@@ -117,7 +522,7 @@ const GAME_CONFIG = {
     }
   },
 
-  // --- CASTES DE FOURMIS ---
+  // --- CASTES DE FOURMIS (PALETTE 3D CGI STYLE FILM FOURMIZ / ANTZ) ---
   CASTES: {
     worker: {
       id: 'worker',
@@ -132,8 +537,12 @@ const GAME_CONFIG = {
       hp: 40,
       scale: 1.0,
       moveSpeed: 1.15,
-      canvasColor: '#3b2d23',
-      headColor: '#261c15'
+      canvasColor: '#a85826',
+      headColor: '#824018',
+      highlightColor: '#ed9b5a',
+      stripeColor: '#4a210a',
+      eyeColor: '#fef3c7',
+      pupilColor: '#261005'
     },
     scout: {
       id: 'scout',
@@ -146,10 +555,14 @@ const GAME_CONFIG = {
       attackPower: 14,
       defensePower: 5,
       hp: 55,
-      scale: 0.92,
+      scale: 0.94,
       moveSpeed: 1.85,
       canvasColor: '#d69e2e',
-      headColor: '#b7791f'
+      headColor: '#b7791f',
+      highlightColor: '#fef08a',
+      stripeColor: '#78350f',
+      eyeColor: '#fffbeb',
+      pupilColor: '#451a03'
     },
     warrior: {
       id: 'warrior',
@@ -165,7 +578,12 @@ const GAME_CONFIG = {
       scale: 1.25,
       moveSpeed: 1.3,
       canvasColor: '#9b2c2c',
-      headColor: '#742a2a'
+      headColor: '#742a2a',
+      highlightColor: '#f6ad55',
+      armorColor: '#b7791f',
+      stripeColor: '#450a0a',
+      eyeColor: '#fde68a',
+      pupilColor: '#450a0a'
     },
     tank: {
       id: 'tank',
@@ -181,7 +599,38 @@ const GAME_CONFIG = {
       scale: 1.55,
       moveSpeed: 0.85,
       canvasColor: '#63171b',
-      headColor: '#9b2c2c'
+      headColor: '#9b2c2c',
+      highlightColor: '#ed8936',
+      armorColor: '#d69e2e',
+      stripeColor: '#2d080a',
+      eyeColor: '#fbd38d',
+      pupilColor: '#1a202c'
+    },
+    nurse: {
+      id: 'nurse',
+      icon: '🍼',
+      cost: 12,
+      incubationSeconds: 5,
+      foodProd: 0,
+      extraUpkeep: 0,
+      pheroProd: 0,
+      attackPower: 0,
+      defensePower: 8,
+      hp: 45,
+      scale: 1.05,
+      moveSpeed: 1.1,
+      canvasColor: '#d97706',
+      headColor: '#b45309',
+      highlightColor: '#fde68a',
+      honeyGlow: 'rgba(251, 191, 36, 0.65)',
+      stripeColor: '#78350f',
+      eyeColor: '#fef3c7',
+      pupilColor: '#451a03',
+      incubationBonusPerNurse: 0.03, // +3% par nourrice
+      maxIncubationBonus: 0.60,      // Max +60%
+      queenHealBonusPerNurse: 0.04,  // +0.04 PV/s par nourrice
+      fungusBonusPerNurse: 0.05,     // +5% prod champignonnière par nourrice
+      maxFungusBonus: 1.00           // Max +100%
     }
   },
 
@@ -193,7 +642,7 @@ const GAME_CONFIG = {
       baseCost: 50,
       costPerLevel: 35,
       bonusPerLevel: 20,
-      cost(lvl) { return this.baseCost + lvl * this.costPerLevel; }
+      cost: function(lvl) { return this.baseCost + lvl * this.costPerLevel; }
     },
     granary: {
       id: 'granary',
@@ -201,7 +650,7 @@ const GAME_CONFIG = {
       baseCost: 40,
       costPerLevel: 25,
       storagePerLevel: 60,
-      cost(lvl) { return this.baseCost + lvl * this.costPerLevel; }
+      cost: function(lvl) { return this.baseCost + lvl * this.costPerLevel; }
     },
     dorm: {
       id: 'dorm',
@@ -209,7 +658,7 @@ const GAME_CONFIG = {
       baseCost: 60,
       costPerLevel: 40,
       popCapPerLevel: 10,
-      cost(lvl) { return this.baseCost + lvl * this.costPerLevel; }
+      cost: function(lvl) { return this.baseCost + lvl * this.costPerLevel; }
     },
     barricade: {
       id: 'barricade',
@@ -217,7 +666,7 @@ const GAME_CONFIG = {
       baseCost: 45,
       costPerLevel: 30,
       defensePerLevel: 25,
-      cost(lvl) { return this.baseCost + lvl * this.costPerLevel; }
+      cost: function(lvl) { return this.baseCost + lvl * this.costPerLevel; }
     },
     fungus: {
       id: 'fungus',
@@ -225,8 +674,82 @@ const GAME_CONFIG = {
       baseCost: 55,
       costPerLevel: 35,
       foodPerLevel: 1.2,
-      cost(lvl) { return this.baseCost + lvl * this.costPerLevel; }
+      cost: function(lvl) { return this.baseCost + lvl * this.costPerLevel; }
+    },
+    aphid_farm: {
+      id: 'aphid_farm',
+      icon: '🌿',
+      baseCost: 60,
+      costPerLevel: 40,
+      honeydewPerLevel: 0.15,
+      cost: function(lvl) { return this.baseCost + lvl * this.costPerLevel; }
+    },
+    masonry_hall: {
+      id: 'masonry_hall',
+      icon: '🏛️',
+      baseCost: 70,
+      costPerLevel: 45,
+      delayReductionPerLevel: 0.12,
+      barricadeReinforcePerLevel: 15,
+      cost: function(lvl) { return this.baseCost + lvl * this.costPerLevel; }
     }
+  },
+
+  // --- PALIERS D'ÈRES ARCHITECTURALES DES SALLES (Lot 5 - Niveaux 1 à Infini) ---
+  ROOM_MILESTONES: [
+    { level: 10, id: 'excavation', i18nKey: 'milestone.room.10', efficiencyBonus: 0.25 },
+    { level: 25, id: 'chitin_pillars', i18nKey: 'milestone.room.25', upkeepReduction: 0.20 },
+    { level: 50, id: 'flint_crypt', i18nKey: 'milestone.room.50', relicSlotUnlocked: true },
+    { level: 100, id: 'abyssal_architecture', i18nKey: 'milestone.room.100', multiplier: 2.0 },
+    { level: 250, id: 'crystal_sanctuary', i18nKey: 'milestone.room.250', passiveAmberPerHour: 1 },
+    { level: 500, id: 'primordial_wonder', i18nKey: 'milestone.room.500', primordialWonder: true }
+  ],
+
+  // --- ÉCONOMIE SYMBIOTIQUE, CHANTIERS BORNÉS & BIOLOGIE (Lot 5) ---
+  SYMBIOSIS: {
+    // Chantiers Asymptotiques Bornés (T <= 2h)
+    constructionBaseSeconds: 30,
+    constructionMaxSeconds: 7200,
+    constructionAsymptoticK: 0.05,
+    minConstructionSeconds: 5,
+
+    // File d'attente selon le niveau de masonry_hall
+    simultaneousBuildLimits: [
+      { minHallLevel: 0, maxActive: 1, maxQueued: 1 },
+      { minHallLevel: 1, maxActive: 1, maxQueued: 2 },
+      { minHallLevel: 3, maxActive: 2, maxQueued: 4 },
+      { minHallLevel: 5, maxActive: 3, maxQueued: Infinity }
+    ],
+
+    // Métiers d'ouvrières
+    masonSpeedBonusPerStep: 0.10,
+    masonStepSize: 5,
+    maxMasonSpeedBonus: 1.50,
+
+    // Taux de production de base des métiers (par ouvrière et par seconde)
+    breederHoneydewProd: 0.08,
+    growerSporesProd: 0.05,
+    masonTwigsProd: 0.10,
+    masonChitinProd: 0.02,
+
+    // Coup de collier au Miellat (Trophallaxis d'Urgence)
+    honeyBoostCost: 20,
+    honeyBoostDurationSeconds: 300,
+    honeyBoostSpeedMultiplier: 2.0,
+
+    // Trophallaxie Royale & Régime de la Reine
+    royalJellyHoneydewUpkeepPerSec: 0.15,
+    goldenEggChance: 0.15,
+
+    // Harmonie Symbiotique (Éleveuses, Cultivatrices, Nourrices)
+    harmonyMaxIncubationBonus: 0.25,
+    harmonyMaxOrganicBonus: 0.20,
+
+    // Compostage Fongique de combat
+    compostLossSpores: 1.5,
+    compostLossChitin: 0.8,
+    compostEnemyPowerChitinRatio: 0.10,
+    compostEnemyPowerSporesRatio: 0.15
   },
 
   // --- DOCTRINES TACTIQUES ---
@@ -258,13 +781,14 @@ const GAME_CONFIG = {
     }
   },
 
-  // --- MISSIONS D'EXPÉDITION ---
+  // --- MISSIONS D'EXPÉDITION (LOT 4) ---
   MISSIONS: {
     pucerons: {
       id: 'pucerons',
       cardId: 'mission1',
       duration: 8,
       difficulty: 25,
+      faction: null,
       riskKey: 'risk.low',
       riskClass: 'risk-low',
       lootFood: 75,
@@ -276,6 +800,7 @@ const GAME_CONFIG = {
       cardId: 'mission2',
       duration: 14,
       difficulty: 65,
+      faction: null,
       riskKey: 'risk.medium',
       riskClass: 'risk-medium',
       lootFood: 180,
@@ -287,34 +812,494 @@ const GAME_CONFIG = {
       cardId: 'mission3',
       duration: 20,
       difficulty: 110,
+      faction: 'fire_ants',
       riskKey: 'risk.high',
       riskClass: 'risk-high',
       lootFood: 320,
       lootPhero: 40,
       bonusWorkers: 1
+    },
+    termites_bastion: {
+      id: 'termites_bastion',
+      cardId: 'mission4',
+      duration: 30,
+      difficulty: 210,
+      faction: 'termites',
+      riskKey: 'risk.extreme',
+      riskClass: 'risk-extreme',
+      lootFood: 550,
+      lootPhero: 75,
+      bonusWorkers: 2
+    },
+    mantis_boss: {
+      id: 'mantis_boss',
+      cardId: 'mission5',
+      duration: 45,
+      difficulty: 380,
+      faction: 'wasps',
+      isBoss: true,
+      trophyKey: 'trophy.mantis',
+      riskKey: 'risk.boss',
+      riskClass: 'risk-boss',
+      lootFood: 1100,
+      lootPhero: 180,
+      bonusWorkers: 3
     }
   },
 
-  // --- MUTATIONS GÉNÉTIQUES ---
+  // --- FACTIONS ADVERSES & CONTRES TACTIQUES (LOT 4) ---
+  FACTIONS: {
+    fire_ants: {
+      id: 'fire_ants',
+      icon: '🔥',
+      nameKey: 'faction.fire_ants.name',
+      descKey: 'faction.fire_ants.desc',
+      counterCaste: 'tank',
+      counterDescKey: 'faction.fire_ants.counter',
+      baseAttackMultiplier: 1.30,
+      baseArmorMultiplier: 0.90,
+      baseSpeedMultiplier: 1.00,
+      counterEfficiencyBonus: 0.35 // Tanks absorbent +35% de dégâts
+    },
+    termites: {
+      id: 'termites',
+      icon: '🪨',
+      nameKey: 'faction.termites.name',
+      descKey: 'faction.termites.desc',
+      counterCaste: 'warrior', // contre acide
+      counterDescKey: 'faction.termites.counter',
+      baseAttackMultiplier: 0.90,
+      baseArmorMultiplier: 1.50,
+      baseSpeedMultiplier: 0.80,
+      acidDamageMultiplier: 1.50 // Perforation d'armure de +50% avec doctrine/mutation acide
+    },
+    wasps: {
+      id: 'wasps',
+      icon: '🐝',
+      nameKey: 'faction.wasps.name',
+      descKey: 'faction.wasps.desc',
+      counterCaste: 'scout',
+      counterDescKey: 'faction.wasps.counter',
+      baseAttackMultiplier: 1.25,
+      baseArmorMultiplier: 0.70,
+      baseSpeedMultiplier: 1.50,
+      scoutPerceptionBonus: 0.40 // Éclaireuses préviennent l'embuscade (+40% puissance)
+    }
+  },
+
+  // --- ARCHÉTYPES D'ENNEMIS (LOT 4) ---
+  ENEMY_ARCHETYPES: {
+    raiders: {
+      id: 'raiders',
+      nameKey: 'enemy.raiders.name',
+      faction: 'fire_ants',
+      basePower: 50,
+      powerPerDay: 15
+    },
+    termite_vanguard: {
+      id: 'termite_vanguard',
+      nameKey: 'enemy.termite_vanguard.name',
+      faction: 'termites',
+      basePower: 210,
+      powerPerDay: 0
+    },
+    mantis_boss: {
+      id: 'mantis_boss',
+      nameKey: 'enemy.mantis_boss.name',
+      faction: 'wasps',
+      isBoss: true,
+      trophyKey: 'trophy.mantis',
+      basePower: 380,
+      powerPerDay: 0
+    }
+  },
+
+  // --- ÉVÉNEMENTS À CHOIX (LOT 4) ---
+  EVENTS: {
+    minIntervalSeconds: 65,
+    randomIntervalSeconds: 45,
+    eventDurationSeconds: 30,
+    registry: {
+      golden_sap: {
+        id: 'golden_sap',
+        icon: '🍯',
+        titleKey: 'event.golden_sap.title',
+        descKey: 'event.golden_sap.desc',
+        minDay: 1,
+        choices: [
+          {
+            id: 'harvest_all',
+            labelKey: 'event.golden_sap.choice_a',
+            outcomeKey: 'event.golden_sap.outcome_a',
+            type: 'loot',
+            effect: { foodGain: 90, riskLossWorkerChance: 0.15 }
+          },
+          {
+            id: 'synthesize_phero',
+            labelKey: 'event.golden_sap.choice_b',
+            outcomeKey: 'event.golden_sap.outcome_b',
+            type: 'phero',
+            effect: { pheroGain: 15 }
+          }
+        ]
+      },
+      myrmecophile_beetle: {
+        id: 'myrmecophile_beetle',
+        icon: '🪲',
+        titleKey: 'event.myrmecophile_beetle.title',
+        descKey: 'event.myrmecophile_beetle.desc',
+        minDay: 2,
+        choices: [
+          {
+            id: 'welcome_guest',
+            labelKey: 'event.myrmecophile_beetle.choice_a',
+            outcomeKey: 'event.myrmecophile_beetle.outcome_a',
+            type: 'bonus',
+            effect: { pheroGain: 20, foodCost: 15 }
+          },
+          {
+            id: 'chase_away',
+            labelKey: 'event.myrmecophile_beetle.choice_b',
+            outcomeKey: 'event.myrmecophile_beetle.outcome_b',
+            type: 'loot',
+            effect: { foodGain: 35 }
+          }
+        ]
+      },
+      heavy_rain: {
+        id: 'heavy_rain',
+        icon: '🌧️',
+        titleKey: 'event.heavy_rain.title',
+        descKey: 'event.heavy_rain.desc',
+        minDay: 2,
+        choices: [
+          {
+            id: 'reinforce_tunnels',
+            labelKey: 'event.heavy_rain.choice_a',
+            outcomeKey: 'event.heavy_rain.outcome_a',
+            type: 'defense',
+            effect: { pheroGain: 10, foodCost: 20 }
+          },
+          {
+            id: 'brave_mud',
+            labelKey: 'event.heavy_rain.choice_b',
+            outcomeKey: 'event.heavy_rain.outcome_b',
+            type: 'gamble',
+            effect: { foodGain: 65, riskLossWorkerChance: 0.25 }
+          }
+        ]
+      },
+      aphid_swarm: {
+        id: 'aphid_swarm',
+        icon: '🌿',
+        titleKey: 'event.aphid_swarm.title',
+        descKey: 'event.aphid_swarm.desc',
+        minDay: 1,
+        choices: [
+          {
+            id: 'herd_aphids',
+            labelKey: 'event.aphid_swarm.choice_a',
+            outcomeKey: 'event.aphid_swarm.outcome_a',
+            type: 'growth',
+            effect: { foodGain: 40, pheroGain: 12 }
+          },
+          {
+            id: 'immediate_feast',
+            labelKey: 'event.aphid_swarm.choice_b',
+            outcomeKey: 'event.aphid_swarm.outcome_b',
+            type: 'loot',
+            effect: { foodGain: 85 }
+          }
+        ]
+      },
+      lost_scouts: {
+        id: 'lost_scouts',
+        icon: '⚡',
+        titleKey: 'event.lost_scouts.title',
+        descKey: 'event.lost_scouts.desc',
+        minDay: 3,
+        choices: [
+          {
+            id: 'rescue_mission',
+            labelKey: 'event.lost_scouts.choice_a',
+            outcomeKey: 'event.lost_scouts.outcome_a',
+            type: 'rescue',
+            effect: { foodCost: 30, bonusScouts: 2 }
+          },
+          {
+            id: 'secure_perimeter',
+            labelKey: 'event.lost_scouts.choice_b',
+            outcomeKey: 'event.lost_scouts.outcome_b',
+            type: 'phero',
+            effect: { pheroGain: 25 }
+          }
+        ]
+      }
+    }
+  },
+
+  // --- CIBLES D'ÉQUILIBRAGE (JALONS I & II - LOTS 4 & 6) ---
+  BALANCE_TARGETS: {
+    mantisBossTargetMinutes: { min: 25, max: 60 },
+    nuptialFlightMinutes: { min: 45, max: 120 },
+    expectedArmyPowerAtDay10: 150,
+    expectedArmyPowerAtDay30: 400,
+    maxNurseIncubationBonus: 0.60
+  },
+
+  // --- MUTATIONS GÉNÉTIQUES (ARBRE À 3 BRANCHES - LOT 6) ---
   MUTATIONS: {
+    // ⚔️ BRANCHE BIOMÉCANIQUE (COMBAT)
     mandibules: {
       id: 'mandibules',
+      branch: 'biomechanics',
+      tier: 1,
+      requires: null,
       btnId: 'btnMutMandibules',
       cost: 25,
-      powerMultiplier: 1.3
+      powerMultiplier: 1.30
     },
     carapace: {
       id: 'carapace',
+      branch: 'biomechanics',
+      tier: 2,
+      requires: 'mandibules',
       btnId: 'btnMutCarapace',
       cost: 35,
-      tankPowerBonus: 15
+      tankPowerBonus: 15,
+      tankHpBonus: 40
     },
     acide: {
       id: 'acide',
+      branch: 'biomechanics',
+      tier: 3,
+      requires: 'carapace',
       btnId: 'btnMutAcide',
       cost: 45,
       warriorPowerBonus: 12
+    },
+    royal_exo: {
+      id: 'royal_exo',
+      branch: 'biomechanics',
+      tier: 3,
+      requires: 'acide',
+      btnId: 'btnMutRoyalExo',
+      cost: 85,
+      queenHpBonus: 50,
+      squadPowerBonusPercent: 0.20
+    },
+
+    // 🍃 BRANCHE MÉTABOLISME (ÉCONOMIE)
+    trophallaxis: {
+      id: 'trophallaxis',
+      branch: 'metabolism',
+      tier: 1,
+      requires: null,
+      btnId: 'btnMutTrophallaxis',
+      cost: 25,
+      workerFoodMultiplier: 1.20
+    },
+    mycology: {
+      id: 'mycology',
+      branch: 'metabolism',
+      tier: 2,
+      requires: 'trophallaxis',
+      btnId: 'btnMutMycology',
+      cost: 45,
+      fungusMultiplier: 1.35
+    },
+    preservation: {
+      id: 'preservation',
+      branch: 'metabolism',
+      tier: 3,
+      requires: 'mycology',
+      btnId: 'btnMutPreservation',
+      cost: 80,
+      granaryCapacityMultiplier: 1.25,
+      winterMitigation: 0.50
+    },
+
+    // 🧪 BRANCHE CHIMIE PHÉROMONALE (COUVAIN)
+    antennae: {
+      id: 'antennae',
+      branch: 'pheromones',
+      tier: 1,
+      requires: null,
+      btnId: 'btnMutAntennae',
+      cost: 25,
+      pheromoneMultiplier: 1.30
+    },
+    thermal_brood: {
+      id: 'thermal_brood',
+      branch: 'pheromones',
+      tier: 2,
+      requires: 'antennae',
+      btnId: 'btnMutThermalBrood',
+      cost: 45,
+      incubationSpeedMultiplier: 1.25
+    },
+    imperial_fervor: {
+      id: 'imperial_fervor',
+      branch: 'pheromones',
+      tier: 3,
+      requires: 'thermal_brood',
+      btnId: 'btnMutImperialFervor',
+      cost: 80,
+      autoSpawnCostMultiplier: 0.50,
+      autoSpawnBonusChance: 0.05
     }
+  },
+
+  // --- HAUTS FAITS & ACCOMPLISSEMENTS (LOT 6) ---
+  ACHIEVEMENTS: {
+    first_hatch: {
+      id: 'first_hatch',
+      icon: '🐣',
+      nameKey: 'ach.first_hatch.name',
+      descKey: 'ach.first_hatch.desc',
+      rewardPhero: 10,
+      check: function (state) {
+        return Boolean(state && state.stats && Number(state.stats.totalAntsHatched) >= 1);
+      }
+    },
+    prosperous_colony: {
+      id: 'prosperous_colony',
+      icon: '🐜',
+      nameKey: 'ach.prosperous_colony.name',
+      descKey: 'ach.prosperous_colony.desc',
+      rewardPhero: 25,
+      check: function (state) {
+        if (!state || !state.ants) return false;
+        const total = (Number(state.ants.worker) || 0) + (Number(state.ants.scout) || 0) +
+                      (Number(state.ants.warrior) || 0) + (Number(state.ants.tank) || 0) +
+                      (Number(state.ants.nurse) || 0);
+        return total >= 50;
+      }
+    },
+    grand_architect: {
+      id: 'grand_architect',
+      icon: '🏛️',
+      nameKey: 'ach.grand_architect.name',
+      descKey: 'ach.grand_architect.desc',
+      rewardPhero: 30,
+      check: function (state) {
+        if (!state || !state.rooms) return false;
+        return (Number(state.rooms.queen) || 0) >= 3 &&
+               (Number(state.rooms.granary) || 0) >= 3 &&
+               (Number(state.rooms.dorm) || 0) >= 3;
+      }
+    },
+    impenetrable_wall: {
+      id: 'impenetrable_wall',
+      icon: '🛡️',
+      nameKey: 'ach.impenetrable_wall.name',
+      descKey: 'ach.impenetrable_wall.desc',
+      rewardPhero: 30,
+      check: function (state) {
+        return Boolean(state && state.stats && Number(state.stats.totalRaidsDefeated) >= 3);
+      }
+    },
+    winter_survivor: {
+      id: 'winter_survivor',
+      icon: '❄️',
+      nameKey: 'ach.winter_survivor.name',
+      descKey: 'ach.winter_survivor.desc',
+      rewardPhero: 35,
+      check: function (state) {
+        return Boolean(state && state.stats && Number(state.stats.winterSurvived) >= 1);
+      }
+    },
+    mantis_slayer: {
+      id: 'mantis_slayer',
+      icon: '👑',
+      nameKey: 'ach.mantis_slayer.name',
+      descKey: 'ach.mantis_slayer.desc',
+      rewardPhero: 50,
+      check: function (state) {
+        return Boolean(state && state.bossesDefeated && state.bossesDefeated.mantis);
+      }
+    },
+    genetic_pioneer: {
+      id: 'genetic_pioneer',
+      icon: '🧬',
+      nameKey: 'ach.genetic_pioneer.name',
+      descKey: 'ach.genetic_pioneer.desc',
+      rewardPhero: 20,
+      check: function (state) {
+        if (!state || !state.mutations) return false;
+        return Object.values(state.mutations).filter(Boolean).length >= 3;
+      }
+    },
+    myrmecologist: {
+      id: 'myrmecologist',
+      icon: '🔬',
+      nameKey: 'ach.myrmecologist.name',
+      descKey: 'ach.myrmecologist.desc',
+      rewardPhero: 60,
+      check: function (state) {
+        if (!state || !state.mutations) return false;
+        return Object.values(state.mutations).filter(Boolean).length >= 9;
+      }
+    },
+    food_hoarder: {
+      id: 'food_hoarder',
+      icon: '🍃',
+      nameKey: 'ach.food_hoarder.name',
+      descKey: 'ach.food_hoarder.desc',
+      rewardPhero: 25,
+      check: function (state) {
+        return Boolean(state && Number(state.food) >= 400);
+      }
+    },
+    pheromone_master: {
+      id: 'pheromone_master',
+      icon: '🧪',
+      nameKey: 'ach.pheromone_master.name',
+      descKey: 'ach.pheromone_master.desc',
+      rewardPhero: 30,
+      check: function (state) {
+        return Boolean(state && state.stats && Number(state.stats.totalPheromonesEarned) >= 100);
+      }
+    },
+    dynasty_founder: {
+      id: 'dynasty_founder',
+      icon: '✨',
+      nameKey: 'ach.dynasty_founder.name',
+      descKey: 'ach.dynasty_founder.desc',
+      rewardPhero: 50,
+      check: function (state) {
+        return Boolean(state && state.stats && Number(state.stats.prestigesCount) >= 1);
+      }
+    }
+  },
+
+  // --- PRESTIGE 1 : VOL NUPTIAL (LOT 6) ---
+  PRESTIGE: {
+    nuptialFlight: {
+      requirements: {
+        minQueenRoomLevel: 5,
+        minPopulation: 50
+      },
+      bonusPerDna: 0.05 // +5% de bonus permanent par point d'ADN Royal
+    }
+  },
+
+  // --- SYSTÈME D'EXPLORATION, ANNEAUX, ABÎMES & RELIQUES (LOT 7) ---
+  get EXPLORATION() {
+    if (this._exploration) return this._exploration;
+    if (typeof require === 'function') {
+      try {
+        const wMod = require('./game-world.js');
+        if (wMod && wMod.EXPLORATION_DEFAULTS) {
+          this._exploration = wMod.EXPLORATION_DEFAULTS;
+          return this._exploration;
+        }
+      } catch (e) {}
+    }
+    return (typeof globalThis !== 'undefined' && globalThis.EXPLORATION_DEFAULTS) || {};
+  },
+  set EXPLORATION(val) {
+    this._exploration = val;
   },
 
   // --- SYSTÈME DE RAIDS ENNEMIS ---
@@ -337,7 +1322,8 @@ const GAME_CONFIG = {
       worker: 18,
       scout: 8,
       warrior: 10,
-      tank: 6
+      tank: 6,
+      nurse: 6
     },
     surfaceHeightRatio: 0.19,
 
@@ -374,16 +1360,41 @@ const GAME_CONFIG = {
     chamberLabelColor: '#cbbba8',
     chamberSubLabelColor: '#f6ad55',
 
+    seasonalParticles: {
+      pollenCount: 22,
+      pollenColor: 'rgba(236, 201, 75, 0.75)',
+      fireflyCount: 16,
+      fireflyGlow: 'rgba(250, 240, 137, 0.85)',
+      leafCount: 18,
+      leafColors: ['#dd6b20', '#c05621', '#9c4221', '#d69e2e'],
+      sporeCount: 14,
+      sporeGlow: 'rgba(183, 148, 244, 0.7)'
+    },
+
+    seasonalDetails: {
+      springFlowerColors: ['#f687b3', '#fbb6ce', '#faf089', '#ffffff'],
+      springFlowerCenterColor: '#ecc94b',
+      springFlowerCount: 8,
+      summerSunRayColor: 'rgba(254, 240, 138, 0.14)',
+      summerSunRayCount: 6,
+      summerSunRayLength: 48,
+      winterMoundFrostColor: 'rgba(240, 248, 255, 0.75)',
+      winterMoundFrostWidth: 2.5
+    },
+
     nodes: {
-      surface_left:  { xRatio: 0.12, yRatio: 0.175, isChamber: false },
-      surface_right: { xRatio: 0.88, yRatio: 0.175, isChamber: false },
-      entrance:      { xRatio: 0.50, yRatio: 0.185, isChamber: false },
-      barricade:     { xRatio: 0.50, yRatio: 0.30,  isChamber: false },
-      queen:         { xRatio: 0.50, yRatio: 0.46,  isChamber: true, rx: 76, ry: 42, labelKey: 'canvas.room.queen', bg: '#442e1b', roomKey: 'queen' },
-      granary:       { xRatio: 0.20, yRatio: 0.62,  isChamber: true, rx: 62, ry: 36, labelKey: 'canvas.room.granary', bg: '#4a331c', roomKey: 'granary' },
-      dorm:          { xRatio: 0.80, yRatio: 0.62,  isChamber: true, rx: 62, ry: 36, labelKey: 'canvas.room.dorm', bg: '#3f2818', roomKey: 'dorm' },
-      fungus:        { xRatio: 0.22, yRatio: 0.84,  isChamber: true, rx: 60, ry: 35, labelKey: 'canvas.room.fungus', bg: '#2d3732', roomKey: 'fungus' },
-      nursery:       { xRatio: 0.56, yRatio: 0.84,  isChamber: true, rx: 70, ry: 38, labelKey: 'canvas.room.nursery', bg: '#3a2517', roomKey: null }
+      surface_left:  { xRatio: 0.12, yRatio: 0.175, isChamber: false, interaction: 'harvest', depositKey: 'left', labelKey: 'canvas.node.surface_left' },
+      surface_right: { xRatio: 0.88, yRatio: 0.175, isChamber: false, interaction: 'harvest', depositKey: 'right', labelKey: 'canvas.node.surface_right' },
+      entrance:      { xRatio: 0.50, yRatio: 0.185, isChamber: false, interaction: 'info', labelKey: 'canvas.node.entrance' },
+      barricade:     { xRatio: 0.50, yRatio: 0.30,  isChamber: false, interaction: 'barricade', roomKey: 'barricade', labelKey: 'canvas.room.barricade' },
+      aphid_farm:    { xRatio: 0.08, yRatio: 0.44,  isChamber: true, rx: 55, ry: 32, labelKey: 'canvas.room.aphid_farm', bg: '#2b3a28', roomKey: 'aphid_farm', interaction: 'room' },
+      queen:         { xRatio: 0.50, yRatio: 0.46,  isChamber: true, rx: 76, ry: 42, labelKey: 'canvas.room.queen', bg: '#442e1b', roomKey: 'queen', interaction: 'room' },
+      masonry_hall:  { xRatio: 0.22, yRatio: 0.65,  isChamber: true, rx: 58, ry: 34, labelKey: 'canvas.room.masonry_hall', bg: '#423326', roomKey: 'masonry_hall', interaction: 'room' },
+      granary:       { xRatio: 0.20, yRatio: 0.62,  isChamber: true, rx: 62, ry: 36, labelKey: 'canvas.room.granary', bg: '#4a331c', roomKey: 'granary', interaction: 'room' },
+      dorm:          { xRatio: 0.80, yRatio: 0.62,  isChamber: true, rx: 62, ry: 36, labelKey: 'canvas.room.dorm', bg: '#3f2818', roomKey: 'dorm', interaction: 'room' },
+      fungus:        { xRatio: 0.22, yRatio: 0.84,  isChamber: true, rx: 60, ry: 35, labelKey: 'canvas.room.fungus', bg: '#2d3732', roomKey: 'fungus', interaction: 'room' },
+      nursery:       { xRatio: 0.56, yRatio: 0.84,  isChamber: true, rx: 70, ry: 38, labelKey: 'canvas.room.nursery', bg: '#3a2517', roomKey: null, interaction: 'nursery' },
+      abyss_shaft:   { xRatio: 0.40, yRatio: 0.95,  isChamber: true, rx: 56, ry: 32, labelKey: 'canvas.node.abyss_shaft', bg: '#1c1514', roomKey: null, interaction: 'abyss' }
     },
 
     edges: [
@@ -394,9 +1405,13 @@ const GAME_CONFIG = {
       ['queen', 'granary'],
       ['queen', 'dorm'],
       ['queen', 'nursery'],
+      ['aphid_farm', 'granary'],
+      ['masonry_hall', 'granary'],
+      ['masonry_hall', 'dorm'],
       ['granary', 'fungus'],
       ['fungus', 'nursery'],
-      ['dorm', 'nursery']
+      ['dorm', 'nursery'],
+      ['nursery', 'abyss_shaft']
     ],
 
     barricadeVisual: {
@@ -423,14 +1438,52 @@ const GAME_CONFIG = {
     },
 
     queen: {
-      abdomen: '#8c3d19',
-      abdomenStripe: '#b75525',
-      thorax: '#5c220c',
+      abdomen: '#9c4221',
+      abdomenHighlight: '#f6ad55',
+      abdomenStripe: '#5c220c',
+      thorax: '#7b341e',
       head: '#d69e2e',
-      antennae: '#ecc94b'
+      antennae: '#ecc94b',
+      eyeColor: '#fef3c7',
+      pupilColor: '#261005'
     },
 
-    antLegColor: '#382a21',
+    antzStyle: {
+      dropShadowColor: 'rgba(8, 5, 3, 0.48)',
+      specularColor: 'rgba(255, 246, 224, 0.58)',
+      rimLightColor: 'rgba(246, 173, 85, 0.42)',
+      eyeCatchlight: '#ffffff',
+      browColor: '#261408',
+      mandibleSteel: '#e2e8f0',
+      mandibleGold: '#ecc94b',
+      petioleColor: '#3d1f0d',
+      legJointColor: '#6b3b1e',
+      queenCrownColor: '#f6e05e',
+      queenCapeColor: 'rgba(254, 243, 199, 0.24)',
+      queenAuraColor: 'rgba(236, 201, 75, 0.24)',
+      trophyEmerald: '#38a169',
+      trophyGold: '#ecc94b'
+    },
+
+    worldAAA: {
+      godRayColor: 'rgba(254, 243, 199, 0.09)',
+      bgGrassAlpha: 0.28,
+      bgGrassScale: 2.1,
+      strataLineColor: 'rgba(255, 215, 170, 0.04)',
+      rootColor: 'rgba(139, 90, 43, 0.35)',
+      tunnelShadowColor: 'rgba(5, 3, 2, 0.65)',
+      tunnelHighlightColor: 'rgba(214, 158, 46, 0.08)',
+      tunnelRibColor: 'rgba(99, 67, 40, 0.32)',
+      chamberShadowColor: 'rgba(6, 4, 2, 0.72)',
+      chamberInnerGlow: 'rgba(246, 173, 85, 0.14)',
+      chamberBadgeBg: 'rgba(15, 11, 8, 0.88)',
+      chamberBadgeBorder: 'rgba(214, 158, 46, 0.45)',
+      cooldownRingBg: 'rgba(15, 12, 10, 0.65)',
+      cooldownRingFg: '#f6ad55',
+      readySparkleColor: 'rgba(246, 224, 94, 0.75)'
+    },
+
+    antLegColor: '#4a2a18',
     leafColor: '#48bb78',
     seedCarryColor: '#ecc94b',
     enemyAnt: {
@@ -438,6 +1491,10 @@ const GAME_CONFIG = {
       moveSpeed: 1.45,
       canvasColor: '#e53e3e',
       headColor: '#9b2c2c',
+      highlightColor: '#feb2b2',
+      stripeColor: '#450a0a',
+      eyeColor: '#fef08a',
+      pupilColor: '#742a2a',
       legColor: '#742a2a',
       glowColor: 'rgba(229, 62, 62, 0.4)'
     },
@@ -451,437 +1508,44 @@ const GAME_CONFIG = {
   },
 
   // --- TOKENS D'INTERNATIONALISATION (FRANÇAIS & ANGLAIS) ---
-  I18N: {
-    fr: {
-      'app.title': 'Empire Fourmi - Stratégie de Colonie',
-      'brand.title': 'EMPIRE FOURMI',
-      'brand.sub': 'Stratégie Souterraine',
-      'res.food.title': 'Nourriture en stock (croissance et entretien)',
-      'res.phero.title': 'Points de phéromones (recherche et doctrines)',
-      'res.pop.title': 'Population actuelle (+ œufs) / Capacité maximale',
-      'res.queen.title': 'Santé de la Reine',
-      'speed.pause': 'Mettre en pause',
-      'speed.1x': 'Vitesse normale',
-      'speed.2x': 'Vitesse x2',
-      'speed.3x': 'Vitesse x3',
-      'lang.switch.title': 'Changer de langue (Français / Anglais)',
-      'sound.toggle.title': 'Activer / Couper les effets sonores',
-      'reset.btn.title': 'Réinitialiser la colonie (Nouvelle Partie)',
-      'reset.confirm': 'Voulez-vous vraiment réinitialiser votre colonie et recommencer à zéro ?',
-
-      // Overlay, Saisons & Temps
-      'time.day': 'Jour',
-      'time.dawn': 'Aube',
-      'time.noon': 'Jour',
-      'time.dusk': 'Crépuscule',
-      'time.night': 'Nuit',
-      'season.spring': 'Printemps',
-      'season.summer': 'Été',
-      'season.autumn': 'Automne',
-      'season.winter': 'Hiver',
-      'season.spring.desc': 'Ponte & Incubation +30%',
-      'season.summer.desc': 'Récolte +25%, Butin +15%',
-      'season.autumn.desc': 'Butin +30%, Raids +15%',
-      'season.winter.desc': 'Froid : Récolte surface -55%',
-      'alert.raid': '⚠️ ALERTE : Raid ennemi en approche dans {sec}s ! Préparez vos Tanks !',
-
-      // Onglets
-      'tab.nursery': 'Nurserie & Armée',
-      'tab.rooms': 'Salles & Galeries',
-      'tab.expeditions': 'Expéditions',
-      'tab.mutations': 'Évolutions',
-      'tab.logs': 'Journal',
-      'tab.mobile.nursery': 'Armée',
-      'tab.mobile.rooms': 'Salles',
-      'tab.mobile.expeditions': 'Expéditions',
-      'tab.mobile.mutations': 'Évolution',
-      'tab.mobile.logs': 'Journal',
-
-      // Nurserie & Castes
-      'nursery.header.title': 'Incubation & Ratios de Castes',
-      'nursery.header.desc': "Affectez vos œufs pour équilibrer l'économie, la reconnaissance et la puissance militaire.",
-      'nursery.queue.title': '🥚 Couvain en Incubation',
-      'nursery.queue.empty': 'Aucun œuf en incubation. Lancez une ponte ci-dessous.',
-      'caste.worker.name': 'Fourmi Ouvrière',
-      'caste.worker.short': 'Ouvrière',
-      'caste.worker.desc': 'Récolte les denrées, creuse les salles et soigne la colonie.',
-      'caste.worker.stat1': 'Production :',
-      'caste.worker.stat2': 'Entretien :',
-      'caste.worker.btn': 'Incuber Ouvrière',
-
-      'caste.scout.name': 'Fourmi Éclaireuse',
-      'caste.scout.short': 'Éclaireuse',
-      'caste.scout.desc': 'Rapide et alerte. Découvre les expéditions et signale les prédateurs.',
-      'caste.scout.stat1': 'Vitesse :',
-      'caste.scout.stat1.val': 'Très Haute',
-      'caste.scout.stat2': 'Phéromones :',
-      'caste.scout.btn': 'Incuber Éclaireuse',
-
-      'caste.warrior.name': 'Fourmi Guerrière',
-      'caste.warrior.short': 'Guerrière',
-      'caste.warrior.desc': "Mandibules tranchantes et tirs d'acide formique. Gros dégâts.",
-      'caste.warrior.stat1': 'Attaque :',
-      'caste.warrior.stat1.val': '36 Puissance',
-      'caste.warrior.stat2': 'Défense :',
-      'caste.warrior.stat2.val': '20 Rempart',
-      'caste.warrior.btn': 'Incuber Guerrière',
-
-      'caste.tank.name': 'Fourmi Tank (Major)',
-      'caste.tank.short': 'Tank (Major)',
-      'caste.tank.desc': "Tête renforcée en bouclier. Encaisse les chocs et protège l'armée.",
-      'caste.tank.stat1': 'Points de Vie :',
-      'caste.tank.stat1.val': '220 PV',
-      'caste.tank.stat2': 'Défense :',
-      'caste.tank.stat2.val': '35 Rempart',
-      'caste.tank.btn': 'Incuber Tank',
-
-      // Salles
-      'rooms.header.title': 'Aménagement des Chambres',
-      'rooms.header.desc': 'Améliorez les cavités pour accroître la population, stocker des surplus et produire sous terre.',
-      'room.lvl': 'Niv.',
-      'room.queen.name': 'Chambre Royale',
-      'room.queen.desc': 'Nid douillet de la Reine. Accélère la ponte automatique et la vitesse du couvain.',
-      'room.queen.stat': 'Vitesse couvain :',
-      'room.queen.btn': 'Agrandir la Chambre',
-
-      'room.granary.name': 'Grenier à Graines',
-      'room.granary.desc': "Conserve le miellat et les feuilles récoltées à l'abri de l'humidité.",
-      'room.granary.stat': 'Capacité maximale :',
-      'room.granary.btn': 'Agrandir le Grenier',
-
-      'room.dorm.name': 'Dortoirs de Colonie',
-      'room.dorm.desc': 'Offre des galeries de repos pour augmenter le nombre total de fourmis.',
-      'room.dorm.stat': 'Plafond de population :',
-      'room.dorm.unit': 'Fourmis',
-      'room.dorm.btn': 'Creuser Nouveaux Dortoirs',
-
-      'room.barricade.name': "Barricade d'Entrée",
-      'room.barricade.desc': 'Piège de terre et brindilles pour retenir les assauts de scarabées ou fourmis rouges.',
-      'room.barricade.stat': 'Ralentissement ennemi :',
-      'room.barricade.unit': 'Défense',
-      'room.barricade.btn': "Renforcer l'Entrée",
-
-      'room.fungus.name': 'Champignonnière Souterraine',
-      'room.fungus.desc': "Culture de champignons symbiotiques. Produit de la nourriture même pendant le gel d'hiver.",
-      'room.fungus.stat': 'Production constante :',
-      'room.fungus.btn': 'Cultiver Champignons',
-
-      // Expéditions
-      'exp.header.title': 'Expéditions & Opérations Militaires',
-      'exp.header.desc': 'Composez votre escouade, choisissez la doctrine de combat et lancez vos troupes à la conquête de la surface.',
-      'exp.squad.title': "🛡️ Composition de l'Escouade",
-      'exp.squad.mobilized': 'Forces :',
-      'exp.squad.power': 'Puissance :',
-      'exp.squad.tanks': '🛡️ Tanks',
-      'exp.squad.warriors': '⚔️ Guerrières',
-      'exp.squad.scouts': '⚡ Éclaireuses',
-      'exp.doctrine.label': 'Doctrine Tactique :',
-      'exp.active.title': '⚔️ Expédition en cours :',
-      'exp.recall.btn': 'Rappeler',
-      'doctrine.balanced.chip': '⚖️ Équilibrée',
-      'doctrine.turtle.chip': '🛡️ Formation Tortue (Défense & Survie)',
-      'doctrine.rush.chip': '⚡ Assaut Mandibules (Attaque Rapide)',
-      'doctrine.acid.chip': '🧪 Bombardement Acide (Distance)',
-      'doctrine.balanced.name': 'Équilibrée',
-      'doctrine.turtle.name': 'Formation Tortue',
-      'doctrine.rush.name': 'Assaut Mandibules',
-      'doctrine.acid.name': 'Bombardement Acide',
-
-      'risk.label': 'Difficulté :',
-      'chance.label': 'Victoire :',
-      'loot.label': 'Butin :',
-      'risk.low': 'Faible',
-      'risk.medium': 'Moyen',
-      'risk.high': 'Élevé',
-      'loot.larvae': '+{count} Larve(s)',
-      'mission.deploy.btn': "Déployer l'Escouade",
-
-      'mission.pucerons.name': 'Piller un Rosier à Pucerons',
-      'mission.pucerons.short': 'Rosier à Pucerons',
-      'mission.pucerons.desc': 'Gisement de miellat sucré gardé par de petites coccinelles.',
-      'mission.chenille.name': 'Chasser une Chenille Égarée',
-      'mission.chenille.short': 'Chasse à la Chenille',
-      'mission.chenille.desc': 'Une proie massive et grasse. Nécessite des Tanks pour la maintenir au sol.',
-      'mission.fourmis_rouges.name': 'Raid sur Avant-Poste Fourmis Rouges',
-      'mission.fourmis_rouges.short': 'Raid Fourmis Rouges',
-      'mission.fourmis_rouges.desc': 'Bataille territoriale sanglante contre une colonie rivale féroce.',
-
-      // Mutations
-      'mut.header.title': 'Arbre Génétique & Phéromones',
-      'mut.header.desc': 'Dépensez vos phéromones pour doter vos castes de mutations permanentes.',
-      'mut.unlock.btn': 'Débloquer',
-      'mut.unlocked.btn': 'Débloqué ✔',
-      'mut.mandibules.name': 'Mandibules de Titane',
-      'mut.mandibules.desc': 'Renforce la dureté de la chitine. +30% de dégâts pour toutes les Guerrières.',
-      'mut.carapace.name': 'Carapace de Chitine Lourde',
-      'mut.carapace.desc': 'Augmente la résistance des Tanks de +40 PV et absorbe 15% de dégâts en plus.',
-      'mut.acide.name': "Glandes d'Acide Formique Concentré",
-      'mut.acide.desc': "Permet aux guerrières de dissoudre les armures d'insectes à mi-distance.",
-
-      // Journal
-      'logs.header.title': 'Journal de la Colonie',
-      'logs.header.desc': 'Chroniques des batailles, des découvertes et de la vie souterraine.',
-      'log.init': 'La Reine a fondé la colonie. 6 ouvrières, 2 éclaireuses et 2 guerrières sont prêtes.',
-      'log.ready': "La Reine s'est établie. La colonie attend vos ordres stratégiques.",
-      'log.new_day': '🌅 Le Jour {day} se lève ({name}).',
-      'log.season_change': '🍃 CHANGEMENT DE SAISON : {name} commence ({desc}) !',
-      'log.starvation': '⚠️ FAMINE : La colonie manque de nourriture ! La Reine faiblit.',
-      'log.auto_spawn': '🥚 Ponte royale : Une nouvelle ouvrière a éclos.',
-      'log.no_food_ant': 'Nourriture insuffisante pour incuber cette caste.',
-      'log.pop_cap': 'Capacité maximale de population atteinte ! Agrandissez les dortoirs.',
-      'log.egg_queued': '🥚 Œuf de {name} placé en incubation dans la Nurserie ({sec}s).',
-      'log.incubated': "🐣 Éclosion : 1 {name} rejoint la colonie !",
-      'log.no_food_room': 'Pas assez de nourriture pour améliorer cette salle ({cost} 🍃 requis).',
-      'log.room_up': '🏛️ Travaux terminés : {name} atteint le niveau {lvl} !',
-      'log.doctrine_set': 'Doctrine tactique définie sur : {name}',
-      'log.empty_squad': "⚠️ Vous devez affecter au moins une fourmi dans l'escouade avant de partir !",
-      'log.exp_busy': 'Une escouade est déjà en mission à la surface.',
-      'log.exp_start': "⚔️ L'escouade quitte le nid pour la mission : {name} ({dur}s de marche).",
-      'log.exp_recalled': "🏳️ L'escouade a été rappelée au nid avant la fin de la mission.",
-      'log.exp_win': "🏆 VICTOIRE SUR L'OBJECTIF : {name} ! Butin rapporté : +{food} 🍃, +{phero} 🧪{bonus}",
-      'log.exp_bonus_workers': ', +{count} Ouvrière(s) issue(s) des larves volées',
-      'log.exp_loss': "❌ ÉCHEC DE MISSION : L'ennemi était trop puissant sur {name}. Pertes : {losses} fourmi(s).",
-      'log.raid_start': '🚨 INVASION : Une colonne de fourmis rouges pillardes attaque les galeries !',
-      'log.raid_barricade': "🧱 Vos barricades ont ralenti l'assaut ennemi (-{abs} force).",
-      'log.raid_win': '🛡️ DÉFENSE HÉROÏQUE : Vos Tanks et Guerrières ont massacré les envahisseurs !',
-      'log.raid_loss': "💥 BRÈCHE DANS LE NID : L'ennemi a pillé {food} 🍃 et blessé nos gardiennes !",
-      'log.no_phero': 'Phéromones insuffisantes ({cost} 🧪 requis).',
-      'log.mut_already': 'Cette mutation a déjà été synthétisée.',
-      'log.mut_unlocked': '🧬 MUTATION ACQUISE : {name} renforce toute la colonie !',
-
-      // Canvas
-      'canvas.room.queen': 'Chambre Royale',
-      'canvas.room.granary': 'Grenier à Graines',
-      'canvas.room.dorm': 'Dortoirs & Soldats',
-      'canvas.room.fungus': 'Champignonnière',
-      'canvas.room.nursery': 'Nurserie (Couvain)',
-      'canvas.lvl.short': 'Niv.',
-      'canvas.unbuilt': 'Non creusée',
-      'canvas.raid.win': '🛡️ ASSAUT ENNEMI REPOUSSÉ !',
-      'canvas.raid.loss': '💥 BRÈCHE DANS LES GALERIES !',
-      'canvas.exp.banner': '⚔️ Expédition : {name} ({sec}s)'
-    },
-
-    en: {
-      'app.title': 'Ant Empire - Colony Strategy',
-      'brand.title': 'ANT EMPIRE',
-      'brand.sub': 'Underground Strategy',
-      'res.food.title': 'Food in stock (growth and upkeep)',
-      'res.phero.title': 'Pheromone points (research and doctrines)',
-      'res.pop.title': 'Current population (+ eggs) / Maximum capacity',
-      'res.queen.title': 'Queen Health',
-      'speed.pause': 'Pause game',
-      'speed.1x': 'Normal speed',
-      'speed.2x': '2x Speed',
-      'speed.3x': '3x Speed',
-      'lang.switch.title': 'Switch language (French / English)',
-      'sound.toggle.title': 'Toggle sound effects',
-      'reset.btn.title': 'Reset colony (New Game)',
-      'reset.confirm': 'Are you sure you want to reset your colony and start over?',
-
-      // Overlay, Seasons & Time
-      'time.day': 'Day',
-      'time.dawn': 'Dawn',
-      'time.noon': 'Day',
-      'time.dusk': 'Dusk',
-      'time.night': 'Night',
-      'season.spring': 'Spring',
-      'season.summer': 'Summer',
-      'season.autumn': 'Autumn',
-      'season.winter': 'Winter',
-      'season.spring.desc': 'Brood & Laying +30%',
-      'season.summer.desc': 'Harvest +25%, Loot +15%',
-      'season.autumn.desc': 'Loot +30%, Raids +15%',
-      'season.winter.desc': 'Frost: Surface harvest -55%',
-      'alert.raid': '⚠️ WARNING: Enemy raid approaching in {sec}s! Prepare your Tanks!',
-
-      // Tabs
-      'tab.nursery': 'Nursery & Army',
-      'tab.rooms': 'Rooms & Tunnels',
-      'tab.expeditions': 'Expeditions',
-      'tab.mutations': 'Evolutions',
-      'tab.logs': 'Logbook',
-      'tab.mobile.nursery': 'Army',
-      'tab.mobile.rooms': 'Rooms',
-      'tab.mobile.expeditions': 'Missions',
-      'tab.mobile.mutations': 'Evolution',
-      'tab.mobile.logs': 'Logs',
-
-      // Nursery & Castes
-      'nursery.header.title': 'Incubation & Caste Ratios',
-      'nursery.header.desc': 'Assign your eggs to balance economy, scouting, and military might.',
-      'nursery.queue.title': '🥚 Incubating Brood',
-      'nursery.queue.empty': 'No eggs incubating. Start incubating a caste below.',
-      'caste.worker.name': 'Worker Ant',
-      'caste.worker.short': 'Worker',
-      'caste.worker.desc': 'Harvests food, digs chambers, and tends to the colony.',
-      'caste.worker.stat1': 'Production:',
-      'caste.worker.stat2': 'Upkeep:',
-      'caste.worker.btn': 'Incubate Worker',
-
-      'caste.scout.name': 'Scout Ant',
-      'caste.scout.short': 'Scout',
-      'caste.scout.desc': 'Fast and alert. Discovers expeditions and spots predators early.',
-      'caste.scout.stat1': 'Speed:',
-      'caste.scout.stat1.val': 'Very High',
-      'caste.scout.stat2': 'Pheromones:',
-      'caste.scout.btn': 'Incubate Scout',
-
-      'caste.warrior.name': 'Warrior Ant',
-      'caste.warrior.short': 'Warrior',
-      'caste.warrior.desc': 'Razor-sharp mandibles and formic acid sprays. High damage.',
-      'caste.warrior.stat1': 'Attack:',
-      'caste.warrior.stat1.val': '36 Power',
-      'caste.warrior.stat2': 'Defense:',
-      'caste.warrior.stat2.val': '20 Bulwark',
-      'caste.warrior.btn': 'Incubate Warrior',
-
-      'caste.tank.name': 'Tank Ant (Major)',
-      'caste.tank.short': 'Tank (Major)',
-      'caste.tank.desc': 'Armored shield head. Absorbs heavy blows and protects the army.',
-      'caste.tank.stat1': 'Hit Points:',
-      'caste.tank.stat1.val': '220 HP',
-      'caste.tank.stat2': 'Defense:',
-      'caste.tank.stat2.val': '35 Bulwark',
-      'caste.tank.btn': 'Incubate Tank',
-
-      // Rooms
-      'rooms.header.title': 'Chamber Excavations',
-      'rooms.header.desc': 'Upgrade underground cavities to increase population, store surplus, and farm underground.',
-      'room.lvl': 'Lvl.',
-      'room.queen.name': 'Royal Chamber',
-      'room.queen.desc': "The Queen's sanctuary. Speeds up automatic laying and brood incubation.",
-      'room.queen.stat': 'Brood speed:',
-      'room.queen.btn': 'Expand Chamber',
-
-      'room.granary.name': 'Seed Granary',
-      'room.granary.desc': 'Preserves harvested honeydew, seeds, and leaves safe from moisture.',
-      'room.granary.stat': 'Max capacity:',
-      'room.granary.btn': 'Expand Granary',
-
-      'room.dorm.name': 'Colony Dormitories',
-      'room.dorm.desc': 'Provides resting galleries to increase the maximum ant population.',
-      'room.dorm.stat': 'Population cap:',
-      'room.dorm.unit': 'Ants',
-      'room.dorm.btn': 'Dig New Dormitories',
-
-      'room.barricade.name': 'Entrance Barricade',
-      'room.barricade.desc': 'Earth and twig fortification to hold back beetle and red ant assaults.',
-      'room.barricade.stat': 'Enemy slowdown:',
-      'room.barricade.unit': 'Defense',
-      'room.barricade.btn': 'Fortify Entrance',
-
-      'room.fungus.name': 'Underground Fungus Farm',
-      'room.fungus.desc': 'Symbiotic mushroom cultivation. Produces steady food even during winter frost.',
-      'room.fungus.stat': 'Steady output:',
-      'room.fungus.btn': 'Cultivate Fungus',
-
-      // Expeditions
-      'exp.header.title': 'Expeditions & Military Operations',
-      'exp.header.desc': 'Assemble your squad, choose a combat doctrine, and march your troops to conquer the surface.',
-      'exp.squad.title': '🛡️ Squad Composition',
-      'exp.squad.mobilized': 'Forces:',
-      'exp.squad.power': 'Power:',
-      'exp.squad.tanks': '🛡️ Tanks',
-      'exp.squad.warriors': '⚔️ Warriors',
-      'exp.squad.scouts': '⚡ Scouts',
-      'exp.doctrine.label': 'Tactical Doctrine:',
-      'exp.active.title': '⚔️ Active Expedition:',
-      'exp.recall.btn': 'Recall',
-      'doctrine.balanced.chip': '⚖️ Balanced',
-      'doctrine.turtle.chip': '🛡️ Turtle Formation (Defense & Survival)',
-      'doctrine.rush.chip': '⚡ Mandible Rush (Fast Assault)',
-      'doctrine.acid.chip': '🧪 Acid Barrage (Ranged)',
-      'doctrine.balanced.name': 'Balanced',
-      'doctrine.turtle.name': 'Turtle Formation',
-      'doctrine.rush.name': 'Mandible Rush',
-      'doctrine.acid.name': 'Acid Barrage',
-
-      'risk.label': 'Difficulty:',
-      'chance.label': 'Win Chance:',
-      'loot.label': 'Loot:',
-      'risk.low': 'Low',
-      'risk.medium': 'Medium',
-      'risk.high': 'High',
-      'loot.larvae': '+{count} Larva(e)',
-      'mission.deploy.btn': 'Deploy Squad',
-
-      'mission.pucerons.name': 'Plunder Aphid Rosebush',
-      'mission.pucerons.short': 'Aphid Rosebush',
-      'mission.pucerons.desc': 'Rich deposit of sweet honeydew guarded by small ladybugs.',
-      'mission.chenille.name': 'Hunt Stray Caterpillar',
-      'mission.chenille.short': 'Caterpillar Hunt',
-      'mission.chenille.desc': 'A massive, nutrient-rich prey. Requires Tanks to pin it down.',
-      'mission.fourmis_rouges.name': 'Raid Red Ant Outpost',
-      'mission.fourmis_rouges.short': 'Red Ant Raid',
-      'mission.fourmis_rouges.desc': 'Fierce territorial battle against a ruthless rival colony.',
-
-      // Mutations
-      'mut.header.title': 'Genetic Tree & Pheromones',
-      'mut.header.desc': 'Spend your pheromones to grant permanent genetic mutations to your castes.',
-      'mut.unlock.btn': 'Unlock',
-      'mut.unlocked.btn': 'Unlocked ✔',
-      'mut.mandibules.name': 'Titanium Mandibles',
-      'mut.mandibules.desc': 'Hardens chitin structure. +30% attack power for the entire army.',
-      'mut.carapace.name': 'Heavy Chitin Carapace',
-      'mut.carapace.desc': 'Increases Tank resilience by +40 HP and adds +15 combat power per Tank.',
-      'mut.acide.name': 'Concentrated Formic Acid Glands',
-      'mut.acide.desc': 'Allows Warriors to dissolve insect armor at mid-range (+12 power per Warrior).',
-
-      // Logs
-      'logs.header.title': 'Colony Logbook',
-      'logs.header.desc': 'Chronicles of battles, discoveries, and underground life.',
-      'log.init': 'The Queen founded the colony. 6 workers, 2 scouts, and 2 warriors are ready.',
-      'log.ready': 'The Queen has settled in. The colony awaits your strategic orders.',
-      'log.new_day': '🌅 Day {day} dawns ({name}).',
-      'log.season_change': '🍃 SEASON CHANGE: {name} begins ({desc})!',
-      'log.starvation': '⚠️ STARVATION: The colony is out of food! The Queen is weakening.',
-      'log.auto_spawn': '🥚 Royal laying: A new worker has hatched.',
-      'log.no_food_ant': 'Not enough food to incubate this caste.',
-      'log.pop_cap': 'Maximum population capacity reached! Expand the dormitories.',
-      'log.egg_queued': '🥚 {name} egg placed in Nursery incubation ({sec}s).',
-      'log.incubated': '🐣 Hatching complete: 1 {name} joins the colony!',
-      'log.no_food_room': 'Not enough food to upgrade this room ({cost} 🍃 required).',
-      'log.room_up': '🏛️ Excavation complete: {name} reached level {lvl}!',
-      'log.doctrine_set': 'Tactical doctrine set to: {name}',
-      'log.empty_squad': '⚠️ You must assign at least one ant to the squad before departing!',
-      'log.exp_busy': 'A squad is already on a surface expedition.',
-      'log.exp_start': '⚔️ The squad leaves the nest for mission: {name} ({dur}s march).',
-      'log.exp_recalled': '🏳️ The squad was recalled to the nest before completing the mission.',
-      'log.exp_win': '🏆 OBJECTIVE CONQUERED: {name}! Loot brought back: +{food} 🍃, +{phero} 🧪{bonus}',
-      'log.exp_bonus_workers': ', +{count} Worker(s) from captured larvae',
-      'log.exp_loss': '❌ MISSION FAILED: The enemy was too strong at {name}. Losses: {losses} ant(s).',
-      'log.raid_start': '🚨 INVASION: A column of marauding red ants is attacking the galleries!',
-      'log.raid_barricade': '🧱 Your barricades slowed down the enemy assault (-{abs} strength).',
-      'log.raid_win': '🛡️ HEROIC DEFENSE: Your Tanks and Warriors crushed the invaders!',
-      'log.raid_loss': '💥 NEST BREACHED: The enemy plundered {food} 🍃 and wounded our guards!',
-      'log.no_phero': 'Not enough pheromones ({cost} 🧪 required).',
-      'log.mut_already': 'This mutation has already been synthesized.',
-      'log.mut_unlocked': '🧬 MUTATION ACQUIRED: {name} strengthens the entire colony!',
-
-      // Canvas
-      'canvas.room.queen': 'Royal Chamber',
-      'canvas.room.granary': 'Seed Granary',
-      'canvas.room.dorm': 'Dorms & Soldiers',
-      'canvas.room.fungus': 'Fungus Farm',
-      'canvas.room.nursery': 'Nursery (Brood)',
-      'canvas.lvl.short': 'Lvl.',
-      'canvas.unbuilt': 'Unexcavated',
-      'canvas.raid.win': '🛡️ ENEMY RAID REPELLED!',
-      'canvas.raid.loss': '💥 GALLERIES BREACHED!',
-      'canvas.exp.banner': '⚔️ Expedition: {name} ({sec}s)'
+  // Dictionnaire bilingue extrait dans i18n.js selon les Standards d'Architecture Senior (< 2000 lignes)
+  get I18N() {
+    if (typeof I18N !== 'undefined') return I18N;
+    if (typeof globalThis !== 'undefined' && globalThis.I18N) return globalThis.I18N;
+    /* c8 ignore next 6 */
+    if (typeof require === 'function') {
+      try {
+        const iMod = require('./i18n.js');
+        return iMod.I18N || iMod;
+      } catch (e) {}
     }
+    return { fr: {}, en: {} };
   }
 };
 
 // Fonction utilitaire globale de traduction avec remplacement de variables {param}
-window.t = function(key, params = {}) {
-  const lang = (typeof gameState !== 'undefined' && gameState.lang) ? gameState.lang : GAME_CONFIG.INITIAL_STATE.lang;
-  const dict = GAME_CONFIG.I18N[lang] || GAME_CONFIG.I18N.fr;
-  let str = dict[key] !== undefined ? dict[key] : (GAME_CONFIG.I18N.fr[key] || key);
+function t(key, params = {}) {
+  if (typeof globalThis.t === 'function' && globalThis.t !== t) {
+    return globalThis.t(key, params);
+  }
+  const i18nDict = GAME_CONFIG.I18N || {};
+  const activeLang = (globalThis.gameState && globalThis.gameState.lang) || (GAME_CONFIG.INITIAL_STATE && GAME_CONFIG.INITIAL_STATE.lang) || 'fr';
+  const dict = i18nDict[activeLang] || i18nDict.fr || {};
+  let str = dict[key] !== undefined ? dict[key] : ((i18nDict.fr && i18nDict.fr[key]) !== undefined ? i18nDict.fr[key] : key);
 
-  Object.keys(params).forEach(k => {
-    str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), params[k]);
-  });
+  if (params && typeof params === 'object') {
+    Object.keys(params).forEach(function (k) {
+      str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), params[k]);
+    });
+  }
   return str;
-};
+}
+
+globalThis.GAME_CONFIG = GAME_CONFIG;
+if (typeof globalThis.t === 'undefined') {
+  globalThis.t = t;
+}
+/* c8 ignore next 3 */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { GAME_CONFIG, t };
+}

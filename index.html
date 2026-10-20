@@ -24,14 +24,14 @@
       </div>
 
       <!-- Live Resource Chips -->
-      <div class="resources-bar">
-        <div class="res-chip food" data-i18n-title="res.food.title" title="Nourriture en stock (croissance et entretien)">
+      <div class="resources-bar" id="resourcesBar">
+        <div class="res-chip food" id="resChipFood" data-i18n-title="res.food.title" title="Nourriture en stock (croissance et entretien)">
           <span>🍃</span>
           <span class="val" id="resFood">100</span>
           <span class="delta pos" id="deltaFood">+2/s</span>
         </div>
 
-        <div class="res-chip pheromone" data-i18n-title="res.phero.title" title="Points de phéromones (recherche et doctrines)">
+        <div class="res-chip pheromone" id="resChipPhero" data-i18n-title="res.phero.title" title="Points de phéromones (recherche et doctrines)">
           <span>🧪</span>
           <span class="val" id="resPheromone">15</span>
           <span class="delta pos" id="deltaPheromone">+0.5/s</span>
@@ -45,6 +45,50 @@
         <div class="res-chip queen" data-i18n-title="res.queen.title" title="Santé de la Reine">
           <span>👑</span>
           <span class="val" id="resQueen">100%</span>
+        </div>
+
+        <div class="res-chip honeydew" id="resChipHoneydew" data-i18n-title="res.honeydew.title" title="Miellat sucré">
+          <span>🍯</span>
+          <span class="val" id="resHoneydew">0</span>
+        </div>
+
+        <div class="res-chip twigs" id="resChipTwigs" data-i18n-title="res.twigs.title" title="Brindilles en stock">
+          <span>🌿</span>
+          <span class="val" id="resTwigs">0</span>
+        </div>
+
+        <div class="res-chip chitin" id="resChipChitin" data-i18n-title="res.chitin.title" title="Chitine pure">
+          <span>🪲</span>
+          <span class="val" id="resChitin">0</span>
+        </div>
+
+        <div class="res-chip spores" id="resChipSpores" data-i18n-title="res.spores.title" title="Spores fongiques">
+          <span>✨</span>
+          <span class="val" id="resSpores">0</span>
+        </div>
+
+        <div class="res-chip amber" id="resChipAmber" data-i18n-title="res.amber.title" title="Ambre Primordiale (Reliques Ancestrales et Méta-Progression)">
+          <span>🟠</span>
+          <span class="val" id="resAmber">0</span>
+        </div>
+
+        <!-- Pinned Target Widget (Lot 3) -->
+        <div class="pinned-target-widget" id="pinnedTargetWidget" style="display: none;">
+          <span class="pin-icon">📌</span>
+          <span id="pinnedTargetLabel" class="pin-label">Cible</span>
+          <span id="pinnedTargetEta" class="pin-eta">--</span>
+        </div>
+
+        <!-- Popover Analytique Économique (Lot 3) -->
+        <div id="economyBreakdownPopover" class="economy-breakdown-popover" style="display: none;">
+          <div class="popover-title">📊 Flux Économique & ETA</div>
+          <div class="popover-row"><span>Ouvrières :</span><span id="ecoWorkersIncome" class="val-pos">+0 🍃/s</span></div>
+          <div class="popover-row"><span>Champignonnière :</span><span id="ecoFungusIncome" class="val-pos">+0 🍃/s</span></div>
+          <div class="popover-row"><span>Consommation de base :</span><span id="ecoBaseConsumption" class="val-neg">-0 🍃/s</span></div>
+          <div class="popover-row"><span>Entretien militaire :</span><span id="ecoMilitaryUpkeep" class="val-neg">-0 🍃/s</span></div>
+          <div class="popover-divider"></div>
+          <div class="popover-row total-row"><span>Solde Net :</span><span id="ecoNetFood">+0 🍃/s</span></div>
+          <div id="ecoEtaRow" class="popover-row eta-row" style="display: none;"><span id="ecoEtaText">Plein dans ...</span></div>
         </div>
       </div>
 
@@ -61,6 +105,7 @@
           <button class="lang-btn active" id="btnLangFR" data-i18n-title="lang.switch.title" onclick="setLanguage('fr')">🇫🇷 FR</button>
           <button class="lang-btn" id="btnLangEN" data-i18n-title="lang.switch.title" onclick="setLanguage('en')">🇬🇧 EN</button>
           <button class="lang-btn" id="btnSound" data-i18n-title="sound.toggle.title" onclick="toggleSound()">🔊</button>
+          <button class="lang-btn" id="btnSaveModal" data-i18n-title="save.btn.title" onclick="openSaveModal()">💾</button>
           <button class="lang-btn" id="btnReset" data-i18n-title="reset.btn.title" onclick="resetGame()">🔄</button>
         </div>
       </div>
@@ -86,14 +131,67 @@
 
     <!-- Right Section: Strategic Command Dashboard -->
     <section class="command-section">
+      <!-- Active Choice Event Banner (Lot 4) -->
+      <div class="active-event-card" id="activeEventCard" style="display: none;">
+        <div class="active-event-header">
+          <div class="event-title-group">
+            <span class="event-icon" id="eventCardIcon">📢</span>
+            <div>
+              <div class="event-title" id="eventCardTitle" data-i18n="event.active.title">Événement Inattendu</div>
+              <div class="event-desc" id="eventCardDesc">-</div>
+            </div>
+          </div>
+          <div class="event-timer-badge">
+            <span data-i18n="event.timeout">Temps restant :</span>
+            <b id="eventCardTimer">30s</b>
+          </div>
+        </div>
+        <div class="event-actions">
+          <button class="btn-primary" id="btnEventChoiceA" onclick="handleChooseEvent(0)">Choix A</button>
+          <button class="btn-secondary" id="btnEventChoiceB" onclick="handleChooseEvent(1)">Choix B</button>
+        </div>
+      </div>
+
+      <!-- Boussole d'Objectifs Dynamique - Cap Impérial (Lot 3) -->
+      <div id="milestoneGoalCompass" class="milestone-goal-compass">
+        <div class="compass-header">
+          <span class="compass-icon">🧭</span>
+          <span class="compass-title" data-i18n="goal.compass.title">Boussole Impériale</span>
+        </div>
+        <div class="compass-goals-grid">
+          <div class="goal-item short-goal">
+            <div class="goal-header">
+              <span class="goal-badge" data-i18n="goal.compass.short">Cap Court Terme :</span>
+              <span id="goalShortDesc" class="goal-desc">Chargement...</span>
+              <span id="goalShortProgress" class="goal-fraction">0 / 0</span>
+            </div>
+            <div class="goal-track">
+              <div id="goalShortBar" class="goal-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+          <div class="goal-item major-goal">
+            <div class="goal-header">
+              <span class="goal-badge major-badge" data-i18n="goal.compass.major">Défi Majeur d'Acte :</span>
+              <span id="goalMajorDesc" class="goal-desc">Chargement...</span>
+              <span id="goalMajorProgress" class="goal-fraction">0 / 0</span>
+            </div>
+            <div class="goal-track">
+              <div id="goalMajorBar" class="goal-fill major-fill" style="width: 0%;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Desktop Tab Bar -->
       <nav class="tabs-nav" id="desktopTabs">
-        <button class="tab-btn active" data-tab="nursery"><span>🐣</span> <span data-i18n="tab.nursery">Nurserie & Armée</span></button>
-        <button class="tab-btn" data-tab="rooms"><span>🏛️</span> <span data-i18n="tab.rooms">Salles & Galeries</span></button>
-        <button class="tab-btn" data-tab="expeditions"><span>🗺️</span> <span data-i18n="tab.expeditions">Expéditions</span></button>
-        <button class="tab-btn" data-tab="mutations"><span>🧬</span> <span data-i18n="tab.mutations">Évolutions</span></button>
+        <button class="tab-btn active" data-tab="colony"><span>🐜</span> <span data-i18n="tab.colony">Colonie</span></button>
+        <button class="tab-btn" data-tab="army"><span>⚔️</span> <span data-i18n="tab.army">Armée</span></button>
+        <button class="tab-btn" data-tab="evolution"><span>🧬</span> <span data-i18n="tab.evolution">Évolution</span></button>
         <button class="tab-btn" data-tab="logs"><span>📜</span> <span data-i18n="tab.logs">Journal</span></button>
       </nav>
+
+      <!-- Subtabs Bar (Lot 3 - Navigation Extensible) -->
+      <div id="subTabsBar" class="subtabs-bar" style="display: none;"></div>
 
       <!-- TAB 1: Nurserie & Castes -->
       <div class="tab-content active" id="tab-nursery">
@@ -105,8 +203,16 @@
         <!-- Incubation Queue Panel -->
         <div class="incubation-panel" id="incubationPanel">
           <div class="incubation-header">
-            <span data-i18n="nursery.queue.title">🥚 Couvain en Incubation</span>
-            <span id="incubationCountBadge">0</span>
+            <div class="incubation-header-title">
+              <span data-i18n="nursery.queue.title">🥚 Couvain en Incubation</span>
+              <span id="incubationCountBadge">0</span>
+            </div>
+            <!-- Sélecteur d'incubation par lots (Lot 3) -->
+            <div class="mult-btn-group" id="incubationMultiplierGroup">
+              <button class="mult-btn active" data-mult="1">×1</button>
+              <button class="mult-btn" data-mult="5">×5</button>
+              <button class="mult-btn" data-mult="max">Max</button>
+            </div>
           </div>
           <div class="incubation-empty" id="incubationEmpty" data-i18n="nursery.queue.empty">Aucun œuf en incubation. Lancez une ponte ci-dessous.</div>
           <div class="incubation-list" id="incubationList"></div>
@@ -200,6 +306,28 @@
               <button class="btn-primary" id="btnIncubateTank" data-i18n="caste.tank.btn" onclick="incubateAnt('tank')">Incuber Tank</button>
             </div>
           </div>
+
+          <!-- Nurse Card (Lot 4) -->
+          <div class="card" id="cardNurse">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🍼</span>
+                <div>
+                  <div class="card-name" data-i18n="caste.nurse.name">Fourmi Nourrice</div>
+                  <div class="card-desc" data-i18n="caste.nurse.desc">Prend soin du couvain et de la Reine. Accélère l'incubation, soigne la Reine et stimule les champignons.</div>
+                </div>
+              </div>
+              <div class="card-count" id="countNurse">0</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="caste.nurse.stat1">Incubation :</span> <b data-i18n="caste.nurse.stat1.val">+3% par nourrice</b></span>
+              <span><span data-i18n="caste.nurse.stat2">Soin Reine :</span> <b data-i18n="caste.nurse.stat2.val">+0.04 PV/s</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costIncubate_nurse">12 🍃</div>
+              <button class="btn-primary" id="btnIncubateNurse" data-i18n="caste.nurse.btn" onclick="incubateAnt('nurse')">Incuber Nourrice</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -212,7 +340,7 @@
 
         <div class="cards-grid">
           <!-- Queen Chamber -->
-          <div class="card">
+          <div class="card" id="roomCard_queen">
             <div class="card-top">
               <div class="card-title-group">
                 <span class="card-icon">👑</span>
@@ -232,7 +360,7 @@
           </div>
 
           <!-- Granary -->
-          <div class="card">
+          <div class="card" id="roomCard_granary">
             <div class="card-top">
               <div class="card-title-group">
                 <span class="card-icon">🏺</span>
@@ -252,7 +380,7 @@
           </div>
 
           <!-- Dormitory -->
-          <div class="card">
+          <div class="card" id="roomCard_dorm">
             <div class="card-top">
               <div class="card-title-group">
                 <span class="card-icon">🛏️</span>
@@ -272,7 +400,7 @@
           </div>
 
           <!-- Barricade -->
-          <div class="card">
+          <div class="card" id="roomCard_barricade">
             <div class="card-top">
               <div class="card-title-group">
                 <span class="card-icon">🧱</span>
@@ -292,7 +420,7 @@
           </div>
 
           <!-- Fungus Farm (Champignonnière) -->
-          <div class="card">
+          <div class="card" id="roomCard_fungus">
             <div class="card-top">
               <div class="card-title-group">
                 <span class="card-icon">🍄</span>
@@ -308,6 +436,186 @@
             <div class="card-action">
               <div class="cost-tag" id="costFungus">55 🍃</div>
               <button class="btn-primary" id="btnUpFungus" data-i18n="room.fungus.btn" onclick="upgradeRoom('fungus')">Cultiver Champignons</button>
+            </div>
+          </div>
+
+          <!-- Aphid Farm (Galerie à Pucerons - Lot 5) -->
+          <div class="card" id="roomCard_aphid_farm">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🌿</span>
+                <div>
+                  <div class="card-name"><span data-i18n="room.aphid_farm.name">Galerie à Pucerons</span> (<span data-i18n="room.lvl">Niv.</span> <span id="lvlAphidFarm">0</span>)</div>
+                  <div class="card-desc" data-i18n="room.aphid_farm.desc">Élevage symbiotique de pucerons souterrains. Produit du miellat sucré pour stimuler la colonie.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="room.aphid_farm.stat">Miellat produit :</span> <b id="statAphidFarm">+0.15 🍯/s</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costAphidFarm">60 🍃</div>
+              <button class="btn-primary" id="btnUpAphidFarm" data-i18n="room.aphid_farm.btn" onclick="upgradeRoom('aphid_farm')">Agrandir la Galerie</button>
+            </div>
+          </div>
+
+          <!-- Masonry Hall (Chambre des Bâtisseuses - Lot 5) -->
+          <div class="card" id="roomCard_masonry_hall">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🏛️</span>
+                <div>
+                  <div class="card-name"><span data-i18n="room.masonry_hall.name">Chambre des Bâtisseuses</span> (<span data-i18n="room.lvl">Niv.</span> <span id="lvlMasonryHall">0</span>)</div>
+                  <div class="card-desc" data-i18n="room.masonry_hall.desc">Quartier des ouvrières maçonnes. Réduit la durée des chantiers et permet des constructions simultanées.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="room.masonry_hall.stat">Délais chantiers :</span> <b id="statMasonryHall">-12% par niveau</b></span>
+            </div>
+            <div class="card-action">
+              <div class="cost-tag" id="costMasonryHall">70 🍃</div>
+              <button class="btn-primary" id="btnUpMasonryHall" data-i18n="room.masonry_hall.btn" onclick="upgradeRoom('masonry_hall')">Excaver la Chambre</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2b: Métiers Ouvrières & Harmonie Symbiotique (Lot 5) -->
+      <div class="tab-content" id="tab-jobs" data-subtab-section="jobs">
+        <div class="tab-header">
+          <h2 data-i18n="jobs.header.title">Répartition des Ouvrières & Harmonie Symbiotique</h2>
+          <p data-i18n="jobs.header.desc">Spécialisez vos ouvrières en rôles clés pour dynamiser la production, accélérer les chantiers et maintenir l’harmonie.</p>
+        </div>
+
+        <!-- Jauge d'Harmonie Symbiotique -->
+        <div class="harmony-panel">
+          <div class="harmony-header">
+            <span class="harmony-title" data-i18n="symbiosis.harmony.title">Harmonie Symbiotique</span>
+            <span class="harmony-val" id="harmonyRatioVal">0%</span>
+          </div>
+          <div class="harmony-track">
+            <div class="harmony-fill" id="harmonyProgressBar" style="width: 0%;"></div>
+          </div>
+          <div class="harmony-stats-row">
+            <span><span data-i18n="symbiosis.harmony.incubation">Incubation :</span> <b id="harmonyIncBonusVal">+0%</b></span>
+            <span><span data-i18n="symbiosis.harmony.organic">Production organique :</span> <b id="harmonyOrgBonusVal">+0%</b></span>
+          </div>
+        </div>
+
+        <!-- Coup de Collier au Miellat (Surge) -->
+        <div class="honey-surge-card">
+          <div class="honey-surge-info">
+            <div class="honey-surge-title" data-i18n="symbiosis.honey_boost.title">Coup de Collier au Miellat</div>
+            <div class="honey-surge-desc" data-i18n="symbiosis.honey_boost.desc">Dépensez 20 Miellat pour doper l’énergie des ouvrières et doubler la vitesse des chantiers pendant 5 minutes.</div>
+          </div>
+          <button class="btn-primary btn-honey-boost" id="btnHoneyBoost" onclick="boostConstructionWithHoneyUI()" data-i18n="symbiosis.honey_boost.btn">Activer le Coup de Collier (20 🍯)</button>
+        </div>
+
+        <!-- Cartes d'attribution des Métiers -->
+        <div class="cards-grid jobs-grid">
+          <!-- Récolteuses -->
+          <div class="card job-card" id="jobCard_harvester">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🌾</span>
+                <div>
+                  <div class="card-name" data-i18n="job.harvester.name">Récolteuses</div>
+                  <div class="card-desc" data-i18n="job.harvester.desc">Collectent la nourriture en surface et alimentent le couvain.</div>
+                </div>
+              </div>
+              <div class="card-count" id="roleHarvesterCount">6</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="job.harvester.stat">Nourriture de base</span></span>
+            </div>
+          </div>
+
+          <!-- Éleveuses -->
+          <div class="card job-card" id="jobCard_breeder">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🍯</span>
+                <div>
+                  <div class="card-name" data-i18n="job.breeder.name">Éleveuses de Pucerons</div>
+                  <div class="card-desc" data-i18n="job.breeder.desc">Traient les pucerons dans la galerie pour produire du miellat sucré.</div>
+                </div>
+              </div>
+              <div class="card-count" id="roleBreederCount">0</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="job.breeder.stat">+0.08 🍯/s par éleveuse</span></span>
+            </div>
+            <div class="role-action-row">
+              <button class="btn-role" onclick="assignWorkerRoleUI('breeder', -1)">-</button>
+              <button class="btn-role" onclick="assignWorkerRoleUI('breeder', 1)">+</button>
+            </div>
+          </div>
+
+          <!-- Cultivatrices -->
+          <div class="card job-card" id="jobCard_grower">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🍄</span>
+                <div>
+                  <div class="card-name" data-i18n="job.grower.name">Cultivatrices Fongiques</div>
+                  <div class="card-desc" data-i18n="job.grower.desc">Ensemencent le compost et soignent les mycéliums pour récolter des spores.</div>
+                </div>
+              </div>
+              <div class="card-count" id="roleGrowerCount">0</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="job.grower.stat">+0.05 ✨/s par cultivatrice</span></span>
+            </div>
+            <div class="role-action-row">
+              <button class="btn-role" onclick="assignWorkerRoleUI('grower', -1)">-</button>
+              <button class="btn-role" onclick="assignWorkerRoleUI('grower', 1)">+</button>
+            </div>
+          </div>
+
+          <!-- Maçonnes -->
+          <div class="card job-card" id="jobCard_mason">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🧱</span>
+                <div>
+                  <div class="card-name" data-i18n="job.mason.name">Maçonnes & Bâtisseuses</div>
+                  <div class="card-desc" data-i18n="job.mason.desc">Collectent des brindilles, renforcent la chitine et accélèrent les chantiers (+10% par tranche de 5).</div>
+                </div>
+              </div>
+              <div class="card-count" id="roleMasonCount">0</div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="job.mason.stat">+0.10 🌿/s, +0.02 🪲/s</span></span>
+            </div>
+            <div class="role-action-row">
+              <button class="btn-role" onclick="assignWorkerRoleUI('mason', -1)">-</button>
+              <button class="btn-role" onclick="assignWorkerRoleUI('mason', 1)">+</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Contrôles Biologiques : Thermorégulation & Trophallaxie Royale -->
+        <div class="biology-controls-grid">
+          <div class="bio-card">
+            <div class="bio-title" data-i18n="symbiosis.ventilation.title">Thermorégulation du Dôme</div>
+            <div class="bio-desc" data-i18n="symbiosis.ventilation.desc">Ajustez la ventilation du dôme selon la saison pour contrer les rigueurs climatiques.</div>
+            <div class="bio-select-row">
+              <select id="selectDomeVentilation" class="bio-select" onchange="setDomeVentilationUI(this.value)">
+                <option value="open" data-i18n="symbiosis.ventilation.open">Dôme Ouvert (Vitesse estivale +15%)</option>
+                <option value="sealed" data-i18n="symbiosis.ventilation.sealed">Dôme Scellé (Atténue le gel hivernal de 50%)</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="bio-card">
+            <div class="bio-title" data-i18n="symbiosis.diet.title">Trophallaxie & Régime Royal</div>
+            <div class="bio-desc" data-i18n="symbiosis.diet.desc">Nourrissez la Reine au Miellat pour stimuler l’apparition d’Œufs Dorés (double éclosion).</div>
+            <div class="bio-select-row">
+              <select id="selectQueenDiet" class="bio-select" onchange="setQueenDietUI(this.value)">
+                <option value="standard" data-i18n="symbiosis.diet.standard">Régime Standard (Nourriture ordinaire)</option>
+                <option value="royal_jelly" data-i18n="symbiosis.diet.royal_jelly">Gelée de Miellat (-0.15 🍯/s, 15% Œufs Dorés)</option>
+              </select>
             </div>
           </div>
         </div>
@@ -331,8 +639,44 @@
           </div>
         </div>
 
-        <!-- Squad Builder -->
-        <div class="squad-builder">
+        <!-- Last Battle Report Panel (Lot 4) -->
+        <div class="battle-report-panel" id="battleReportSection" data-subtab-section="battle_report" style="display: none;">
+          <div class="battle-report-header">
+            <div class="battle-report-title-group">
+              <span class="battle-icon">📜</span>
+              <span data-i18n="combat.report.title">Rapport de Bataille</span>
+              <span class="battle-target" id="battleReportTarget">-</span>
+            </div>
+            <span class="battle-badge" id="battleReportBadge">VICTOIRE</span>
+          </div>
+          <div class="battle-report-grid">
+            <div class="battle-stat-col">
+              <span data-i18n="combat.report.allied_power">Puissance Alliée :</span>
+              <b id="battleReportAlliedPower">0</b>
+            </div>
+            <div class="battle-stat-col">
+              <span data-i18n="combat.report.enemy_power">Puissance Ennemie :</span>
+              <b id="battleReportEnemyPower">0</b>
+            </div>
+            <div class="battle-stat-col">
+              <span data-i18n="combat.report.counter_applied">Contre Tactique :</span>
+              <b id="battleReportCounter">-</b>
+            </div>
+            <div class="battle-stat-col">
+              <span data-i18n="combat.report.losses">Pertes subies :</span>
+              <b id="battleReportLosses">-</b>
+            </div>
+          </div>
+          <div class="battle-loot-row">
+            <span data-i18n="combat.report.loot">Butin rapporté :</span>
+            <b class="risk-low" id="battleReportLoot">-</b>
+          </div>
+        </div>
+
+        <!-- Sous-onglet Escouade & Missions -->
+        <div data-subtab-section="squad">
+          <!-- Squad Builder -->
+          <div class="squad-builder">
           <div class="squad-header">
             <span data-i18n="exp.squad.title">🛡️ Composition de l'Escouade</span>
             <div class="squad-meta-group">
@@ -445,65 +789,547 @@
               <button class="btn-primary" id="btnMission_fourmis_rouges" data-i18n="mission.deploy.btn" onclick="launchExpedition('fourmis_rouges')">Déployer l'Escouade</button>
             </div>
           </div>
+
+          <!-- Mission 4 : Bastion des Termites (Lot 4) -->
+          <div class="card" id="mission4">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🪨</span>
+                <div>
+                  <div class="card-name" data-i18n="mission.termites_bastion.name">Siège du Bastion des Termites</div>
+                  <div class="card-desc" data-i18n="mission.termites_bastion.desc">Forteresse de termites blindés. L'acide des Guerrières est indispensable.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="risk.label">Difficulté :</span> <b class="risk-extreme" id="missionRisk_termites_bastion">Extrême (210)</b></span>
+              <span><span data-i18n="chance.label">Victoire :</span> <b id="missionChance_termites_bastion">0%</b></span>
+              <span><span data-i18n="loot.label">Butin :</span> <b id="missionLoot_termites_bastion">+550 🍃, +75 🧪, +2 Larve(s)</b></span>
+            </div>
+            <div class="card-action">
+              <button class="btn-primary" id="btnMission_termites_bastion" data-i18n="mission.deploy.btn" onclick="launchExpedition('termites_bastion')">Déployer l'Escouade</button>
+            </div>
+          </div>
+
+          <!-- Mission 5 : Boss Mante Royale (Lot 4) -->
+          <div class="card" id="mission5">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">👑</span>
+                <div>
+                  <div class="card-name" data-i18n="mission.mantis_boss.name">Repaire de la Mante Royale</div>
+                  <div class="card-desc" data-i18n="mission.mantis_boss.desc">Un prédateur titanesque et véloce. Seule une armée aguerrie avec Éclaireuses et Tanks pourra en venir à bout.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="risk.label">Difficulté :</span> <b class="risk-boss" id="missionRisk_mantis_boss">Boss (380)</b></span>
+              <span><span data-i18n="chance.label">Victoire :</span> <b id="missionChance_mantis_boss">0%</b></span>
+              <span><span data-i18n="loot.label">Butin :</span> <b id="missionLoot_mantis_boss">+1100 🍃, +180 🧪, +3 Larve(s)</b></span>
+            </div>
+            <div class="card-action">
+              <button class="btn-primary" id="btnMission_mantis_boss" data-i18n="mission.deploy.btn" onclick="launchExpedition('mantis_boss')">Affronter le Boss</button>
+            </div>
+          </div>
+        </div>
+        </div>
+
+        <!-- Section Exploration Infinie, Abîmes & Reliques (Lot 7) -->
+        <div data-subtab-section="exploration" id="explorationSection" style="display: none;">
+          <!-- 1. Bannière Pont Vivant -->
+          <div class="card bridge-card" id="cardLivingBridge">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">🐜</span>
+                <div>
+                  <div class="card-name" data-i18n="exp.bridge.title">Pont Vivant d’Ouvrières</div>
+                  <div class="card-desc" data-i18n="exp.bridge.desc">Mobilisez 5 ouvrières pour former une chaîne organique de franchissement et d’accélération (+25% récolte).</div>
+                </div>
+              </div>
+              <span class="badge-status inactive" id="bridgeStatusBadge" data-i18n="exp.bridge.inactive_badge">Pont Vivant Inactif</span>
+            </div>
+            <div class="card-action">
+              <button class="btn-primary" id="btnLivingBridgeToggle" data-i18n="exp.bridge.deploy_btn" onclick="formLivingBridgeAction()">Déployer Pont Vivant (5 🐜)</button>
+            </div>
+          </div>
+
+          <!-- 2. Forage des Abîmes -->
+          <div class="card abyss-card" id="cardAbyssShaft">
+            <div class="card-top">
+              <div class="card-title-group">
+                <span class="card-icon">⛏️</span>
+                <div>
+                  <div class="card-name" data-i18n="exp.abyss.title">Puits des Abîmes</div>
+                  <div class="card-desc" data-i18n="exp.abyss.desc">Creusez verticalement vers les strates profondes. Augmente la capacité de couvain et apporte de la chaleur géothermique.</div>
+                </div>
+              </div>
+            </div>
+            <div class="card-stats">
+              <span><span data-i18n="exp.abyss.depth">Profondeur forée :</span> <b id="abyssDepthVal">0</b></span>
+              <span><span data-i18n="exp.abyss.geothermal">Chaleur géothermique :</span> <b class="risk-low" id="abyssGeothermalVal">+0%</b></span>
+              <span><span data-i18n="exp.abyss.hazard_active">Aléa actif :</span> <b class="risk-medium" id="abyssHazardVal">Aucun</b></span>
+            </div>
+            <div class="card-action">
+              <button class="btn-primary" id="btnDrillStratum" data-i18n="exp.abyss.drill_btn" onclick="drillStratumAction()">Forer la Prochaine Strate (+2 Dortoir)</button>
+            </div>
+          </div>
+
+          <!-- 3. Reliques Ancestrales -->
+          <div class="section-title-group" style="margin: 20px 0 12px;">
+            <h3 data-i18n="exp.relics.title">Reliques Ancestrales (Monnaie Ambre 🟠)</h3>
+            <p data-i18n="exp.relics.desc" style="color: var(--text-muted); font-size: 0.88rem;">Gravures et fossiles primordiaux conservés à travers tous vos Vols Nuptiaux.</p>
+          </div>
+
+          <div class="cards-grid">
+            <!-- Relique 1 : Ambre de la Reine -->
+            <div class="card relic-card" id="cardRelicQueenAmber">
+              <div class="card-top">
+                <div class="card-title-group">
+                  <span class="card-icon">👑</span>
+                  <div>
+                    <div class="card-name" data-i18n="relic.queen_amber.name">Ambre de la Reine Primordiale</div>
+                    <div class="card-desc" data-i18n="relic.queen_amber.desc">+25 PV Reine et +0.10 PV/s de régénération par niveau.</div>
+                  </div>
+                </div>
+                <div class="card-count" id="relicLvl_queen_amber">0</div>
+              </div>
+              <div class="card-action">
+                <div class="cost-tag amber-cost" id="relicCost_queen_amber">15 🟠</div>
+                <button class="btn-primary" id="btnUpgradeRelic_queen_amber" data-i18n="relic.upgrade.btn" onclick="upgradeRelicAction('queen_amber')">Éveiller Relique</button>
+              </div>
+            </div>
+
+            <!-- Relique 2 : Mandibule Fossile -->
+            <div class="card relic-card" id="cardRelicFossilMandible">
+              <div class="card-top">
+                <div class="card-title-group">
+                  <span class="card-icon">🦴</span>
+                  <div>
+                    <div class="card-name" data-i18n="relic.fossil_mandible.name">Mandibule Fossile</div>
+                    <div class="card-desc" data-i18n="relic.fossil_mandible.desc">+8% de puissance de combat globale par niveau.</div>
+                  </div>
+                </div>
+                <div class="card-count" id="relicLvl_fossil_mandible">0</div>
+              </div>
+              <div class="card-action">
+                <div class="cost-tag amber-cost" id="relicCost_fossil_mandible">20 🟠</div>
+                <button class="btn-primary" id="btnUpgradeRelic_fossil_mandible" data-i18n="relic.upgrade.btn" onclick="upgradeRelicAction('fossil_mandible')">Éveiller Relique</button>
+              </div>
+            </div>
+
+            <!-- Relique 3 : Spore Éternelle -->
+            <div class="card relic-card" id="cardRelicEternalSpore">
+              <div class="card-top">
+                <div class="card-title-group">
+                  <span class="card-icon">🍄</span>
+                  <div>
+                    <div class="card-name" data-i18n="relic.eternal_spore.name">Spore Éternelle</div>
+                    <div class="card-desc" data-i18n="relic.eternal_spore.desc">+15% production de champignons et +10% de compostage par niveau.</div>
+                  </div>
+                </div>
+                <div class="card-count" id="relicLvl_eternal_spore">0</div>
+              </div>
+              <div class="card-action">
+                <div class="cost-tag amber-cost" id="relicCost_eternal_spore">25 🟠</div>
+                <button class="btn-primary" id="btnUpgradeRelic_eternal_spore" data-i18n="relic.upgrade.btn" onclick="upgradeRelicAction('eternal_spore')">Éveiller Relique</button>
+              </div>
+            </div>
+
+            <!-- Relique 4 : Sève Solaire -->
+            <div class="card relic-card" id="cardRelicSolarSap">
+              <div class="card-top">
+                <div class="card-title-group">
+                  <span class="card-icon">☀️</span>
+                  <div>
+                    <div class="card-name" data-i18n="relic.solar_sap.name">Goutte de Sève Solaire</div>
+                    <div class="card-desc" data-i18n="relic.solar_sap.desc">+10% vitesse d’incubation et +15% récolte d’hiver par niveau.</div>
+                  </div>
+                </div>
+                <div class="card-count" id="relicLvl_solar_sap">0</div>
+              </div>
+              <div class="card-action">
+                <div class="cost-tag amber-cost" id="relicCost_solar_sap">30 🟠</div>
+                <button class="btn-primary" id="btnUpgradeRelic_solar_sap" data-i18n="relic.upgrade.btn" onclick="upgradeRelicAction('solar_sap')">Éveiller Relique</button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- TAB 4: Mutations -->
+      <!-- TAB 4: Mutations, Hauts Faits & Dynastie (Lot 6) -->
       <div class="tab-content" id="tab-mutations">
-        <div class="tab-header">
-          <h2 data-i18n="mut.header.title">Arbre Génétique & Phéromones</h2>
-          <p data-i18n="mut.header.desc">Dépensez vos phéromones pour doter vos castes de mutations permanentes.</p>
+        <!-- Section Dynastie Royale & Vol Nuptial -->
+        <div class="prestige-banner-card" id="dynastySection">
+          <div class="prestige-banner-top">
+            <div class="prestige-title-group">
+              <span class="prestige-icon">👑</span>
+              <div>
+                <div class="prestige-title" data-i18n="prestige.header.title">Dynastie Royale & Vol Nuptial</div>
+                <div class="prestige-desc" data-i18n="prestige.header.desc">Laissez une nouvelle Reine s'envoler pour fonder une dynastie supérieure grâce à l'ADN Royal.</div>
+              </div>
+            </div>
+            <div class="dna-chip">
+              <span>🧬</span> <span id="dynastyRoyalDna">0</span> ADN Royal
+              <span class="dna-bonus" id="dynastyBonusPercent">+0%</span>
+            </div>
+          </div>
+          <div class="prestige-reqs-row">
+            <div class="req-item">
+              <span data-i18n="room.queen.name">Chambre Royale :</span>
+              <b id="prestigeReqQueen" class="req-unmet">1 / 5</b>
+            </div>
+            <div class="req-item">
+              <span data-i18n="res.pop.title">Population active :</span>
+              <b id="prestigeReqPop" class="req-unmet">10 / 50</b>
+            </div>
+            <div class="req-item">
+              <span data-i18n="prestige.gain_est">Gain estimé :</span>
+              <b class="risk-low" id="prestigeEstimatedGain">+0 🧬</b>
+            </div>
+          </div>
+          <div class="prestige-action-row">
+            <button class="btn-prestige" id="btnTriggerFlight" data-i18n="prestige.btn" onclick="triggerNuptialFlight()" disabled>Initier le Vol Nuptial 👑</button>
+          </div>
         </div>
 
-        <div class="cards-grid">
-          <!-- Mutation 1 -->
-          <div class="card">
-            <div class="card-top">
-              <div class="card-title-group">
-                <span class="card-icon">🦷</span>
-                <div>
-                  <div class="card-name" data-i18n="mut.mandibules.name">Mandibules de Titane</div>
-                  <div class="card-desc" data-i18n="mut.mandibules.desc">Renforce la dureté de la chitine. +30% de dégâts pour toutes les Guerrières.</div>
+        <!-- Section Arbre Génétique -->
+        <div class="tab-header">
+          <h2 data-i18n="mut.header.title">Arbre Génétique & Évolution</h2>
+          <p data-i18n="mut.header.desc">Développez les lignées génétiques de votre colonie : Biomécanique, Métabolisme et Chimie Phéromonale.</p>
+        </div>
+
+        <!-- 3 Branches de Mutations -->
+        <div class="genetic-tree-branches">
+          <!-- Branche Biomécanique -->
+          <div class="mutation-branch">
+            <div class="branch-header branch-biomech">
+              <span class="branch-icon">⚔️</span>
+              <span data-i18n="mut.branch.biomechanics">Biomécanique (Combat)</span>
+            </div>
+            <div class="cards-grid">
+              <!-- Mandibules -->
+              <div class="card" id="mutCard_mandibules">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">🦷</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.mandibules.name">Mandibules de Titane</div>
+                      <div class="card-desc" data-i18n="mut.mandibules.desc">Renforce la dureté de la chitine. +30% de dégâts pour toutes les Guerrières.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_mandibules">25 🧪</div>
+                  <button class="btn-primary" id="btnMutMandibules" onclick="researchMutation('mandibules')">Débloquer</button>
                 </div>
               </div>
-            </div>
-            <div class="card-action">
-              <div class="cost-tag cost-pheromone" id="costMut_mandibules">25 🧪</div>
-              <button class="btn-primary" id="btnMutMandibules" onclick="researchMutation('mandibules')">Débloquer</button>
+
+              <!-- Carapace -->
+              <div class="card" id="mutCard_carapace">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">🛡️</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.carapace.name">Carapace de Chitine Lourde</div>
+                      <div class="card-desc" data-i18n="mut.carapace.desc">Augmente la résistance des Tanks de +40 PV et renforce leur absorption en combat.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_carapace">35 🧪</div>
+                  <button class="btn-primary" id="btnMutCarapace" onclick="researchMutation('carapace')">Débloquer</button>
+                </div>
+              </div>
+
+              <!-- Acide -->
+              <div class="card" id="mutCard_acide">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">🧪</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.acide.name">Glandes d'Acide Formique</div>
+                      <div class="card-desc" data-i18n="mut.acide.desc">Dissout les carapaces des Termites et confère un bonus d'attaque aux Guerrières.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_acide">45 🧪</div>
+                  <button class="btn-primary" id="btnMutAcide" onclick="researchMutation('acide')">Débloquer</button>
+                </div>
+              </div>
+
+              <!-- Exosquelette Royal -->
+              <div class="card" id="mutCard_royal_exo">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">👑</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.royal_exo.name">Exosquelette Royal</div>
+                      <div class="card-desc" data-i18n="mut.royal_exo.desc">Renforce la Reine (+50 PV max) et galvanise l'ensemble de l'escouade militaire (+20% puissance).</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_royal_exo">85 🧪</div>
+                  <button class="btn-primary" id="btnMutRoyalExo" onclick="researchMutation('royal_exo')">Débloquer</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Mutation 2 -->
-          <div class="card">
-            <div class="card-top">
-              <div class="card-title-group">
-                <span class="card-icon">🛡️</span>
-                <div>
-                  <div class="card-name" data-i18n="mut.carapace.name">Carapace de Chitine Lourde</div>
-                  <div class="card-desc" data-i18n="mut.carapace.desc">Augmente la résistance des Tanks de +40 PV et absorbe 15% de dégâts en plus.</div>
+          <!-- Branche Métabolisme -->
+          <div class="mutation-branch">
+            <div class="branch-header branch-metabolism">
+              <span class="branch-icon">🍃</span>
+              <span data-i18n="mut.branch.metabolism">Métabolisme (Économie)</span>
+            </div>
+            <div class="cards-grid">
+              <!-- Trophallaxis -->
+              <div class="card" id="mutCard_trophallaxis">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">🌿</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.trophallaxis.name">Trophallaxie Efficace</div>
+                      <div class="card-desc" data-i18n="mut.trophallaxis.desc">Partage optimisé des sucs nutritifs. +20% de production de nourriture pour toutes les ouvrières.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_trophallaxis">25 🧪</div>
+                  <button class="btn-primary" id="btnMutTrophallaxis" onclick="researchMutation('trophallaxis')">Débloquer</button>
                 </div>
               </div>
-            </div>
-            <div class="card-action">
-              <div class="cost-tag cost-pheromone" id="costMut_carapace">35 🧪</div>
-              <button class="btn-primary" id="btnMutCarapace" onclick="researchMutation('carapace')">Débloquer</button>
+
+              <!-- Mycology -->
+              <div class="card" id="mutCard_mycology">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">🍄</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.mycology.name">Mycosymbiose Avancée</div>
+                      <div class="card-desc" data-i18n="mut.mycology.desc">Culture de spores fongiques hautement nutritives. +35% de production pour la Champignonnière.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_mycology">45 🧪</div>
+                  <button class="btn-primary" id="btnMutMycology" onclick="researchMutation('mycology')">Débloquer</button>
+                </div>
+              </div>
+
+              <!-- Preservation -->
+              <div class="card" id="mutCard_preservation">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">❄️</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.preservation.name">Préservation Cryogénique</div>
+                      <div class="card-desc" data-i18n="mut.preservation.desc">Techniques de stockage antifroid. Grenier +25% de capacité et malus hivernal réduit de moitié.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_preservation">80 🧪</div>
+                  <button class="btn-primary" id="btnMutPreservation" onclick="researchMutation('preservation')">Débloquer</button>
+                </div>
+              </div>
             </div>
           </div>
 
-          <!-- Mutation 3 -->
-          <div class="card">
-            <div class="card-top">
-              <div class="card-title-group">
-                <span class="card-icon">🧪</span>
-                <div>
-                  <div class="card-name" data-i18n="mut.acide.name">Glandes d'Acide Formique Concentré</div>
-                  <div class="card-desc" data-i18n="mut.acide.desc">Permet aux guerrières de dissoudre les armures d'insectes à mi-distance.</div>
+          <!-- Branche Chimie Phéromonale -->
+          <div class="mutation-branch">
+            <div class="branch-header branch-pheromones">
+              <span class="branch-icon">🧪</span>
+              <span data-i18n="mut.branch.pheromones">Chimie Phéromonale (Couvain)</span>
+            </div>
+            <div class="cards-grid">
+              <!-- Antennae -->
+              <div class="card" id="mutCard_antennae">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">📡</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.antennae.name">Antennes Sensorielles</div>
+                      <div class="card-desc" data-i18n="mut.antennae.desc">Afflux de perceptions tactiles et chimiques. +30% de production globale de phéromones.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_antennae">25 🧪</div>
+                  <button class="btn-primary" id="btnMutAntennae" onclick="researchMutation('antennae')">Débloquer</button>
+                </div>
+              </div>
+
+              <!-- Thermal Brood -->
+              <div class="card" id="mutCard_thermal_brood">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">🔥</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.thermal_brood.name">Couvain Thermorégulé</div>
+                      <div class="card-desc" data-i18n="mut.thermal_brood.desc">Maintien constant de la température du nid. Vitesse d'incubation accrue de +25%.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_thermal_brood">45 🧪</div>
+                  <button class="btn-primary" id="btnMutThermalBrood" onclick="researchMutation('thermal_brood')">Débloquer</button>
+                </div>
+              </div>
+
+              <!-- Imperial Fervor -->
+              <div class="card" id="mutCard_imperial_fervor">
+                <div class="card-top">
+                  <div class="card-title-group">
+                    <span class="card-icon">✨</span>
+                    <div>
+                      <div class="card-name" data-i18n="mut.imperial_fervor.name">Ferveur Impériale</div>
+                      <div class="card-desc" data-i18n="mut.imperial_fervor.desc">Dévotion totale à la dynastie. Pontes royales spontanées doublées et coût réduit de moitié.</div>
+                    </div>
+                  </div>
+                </div>
+                <div class="card-action">
+                  <div class="cost-tag cost-pheromone" id="costMut_imperial_fervor">80 🧪</div>
+                  <button class="btn-primary" id="btnMutImperialFervor" onclick="researchMutation('imperial_fervor')">Débloquer</button>
                 </div>
               </div>
             </div>
-            <div class="card-action">
-              <div class="cost-tag cost-pheromone" id="costMut_acide">45 🧪</div>
-              <button class="btn-primary" id="btnMutAcide" onclick="researchMutation('acide')">Débloquer</button>
+          </div>
+        </div>
+
+        <!-- Section Hauts Faits & Accomplissements -->
+        <div class="achievements-section" id="achievementsSection">
+          <div class="tab-header ach-header">
+            <div>
+              <h2 data-i18n="ach.header.title">Hauts Faits & Accomplissements</h2>
+              <p data-i18n="ach.header.desc">Défis historiques accomplis par la colonie. Les hauts faits persistent à travers les prestiges.</p>
+            </div>
+            <div class="ach-count-chip">
+              <span>🏆</span> <span id="achCount">0 / 11</span>
+            </div>
+          </div>
+
+          <div class="achievements-grid">
+            <!-- 1. Première Éclosion -->
+            <div class="ach-card" id="achCard_first_hatch">
+              <span class="ach-icon">🐣</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.first_hatch.name">Première Éclosion</div>
+                <div class="ach-desc" data-i18n="ach.first_hatch.desc">Incuber votre toute première fourmi dans la Nurserie.</div>
+                <div class="ach-reward">+10 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_first_hatch">EN COURS</span>
+            </div>
+
+            <!-- 2. Colonie Prospère -->
+            <div class="ach-card" id="achCard_prosperous_colony">
+              <span class="ach-icon">🐜</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.prosperous_colony.name">Colonie Prospère</div>
+                <div class="ach-desc" data-i18n="ach.prosperous_colony.desc">Rassembler une population active d'au moins 50 fourmis.</div>
+                <div class="ach-reward">+25 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_prosperous_colony">EN COURS</span>
+            </div>
+
+            <!-- 3. Grand Architecte -->
+            <div class="ach-card" id="achCard_grand_architect">
+              <span class="ach-icon">🏛️</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.grand_architect.name">Maître Architecte</div>
+                <div class="ach-desc" data-i18n="ach.grand_architect.desc">Bâtir la Chambre Royale, le Grenier et les Dortoirs au niveau 3 ou plus.</div>
+                <div class="ach-reward">+30 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_grand_architect">EN COURS</span>
+            </div>
+
+            <!-- 4. Rempart Inébranlable -->
+            <div class="ach-card" id="achCard_impenetrable_wall">
+              <span class="ach-icon">🛡️</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.impenetrable_wall.name">Rempart Inébranlable</div>
+                <div class="ach-desc" data-i18n="ach.impenetrable_wall.desc">Repousser victorieusement au moins 3 raids prédateurs ennemis.</div>
+                <div class="ach-reward">+30 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_impenetrable_wall">EN COURS</span>
+            </div>
+
+            <!-- 5. Survivant du Grand Froid -->
+            <div class="ach-card" id="achCard_winter_survivor">
+              <span class="ach-icon">❄️</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.winter_survivor.name">Survivant du Grand Froid</div>
+                <div class="ach-desc" data-i18n="ach.winter_survivor.desc">Traverser un hiver rigoureux sans perdre la Reine.</div>
+                <div class="ach-reward">+35 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_winter_survivor">EN COURS</span>
+            </div>
+
+            <!-- 6. Fléau de la Mante -->
+            <div class="ach-card" id="achCard_mantis_slayer">
+              <span class="ach-icon">👑</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.mantis_slayer.name">Fléau de la Mante</div>
+                <div class="ach-desc" data-i18n="ach.mantis_slayer.desc">Triompher de la redoutable Mante Royale en expédition.</div>
+                <div class="ach-reward">+50 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_mantis_slayer">EN COURS</span>
+            </div>
+
+            <!-- 7. Pionnier Génétique -->
+            <div class="ach-card" id="achCard_genetic_pioneer">
+              <span class="ach-icon">🧬</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.genetic_pioneer.name">Pionnier Génétique</div>
+                <div class="ach-desc" data-i18n="ach.genetic_pioneer.desc">Synthétiser au moins 3 mutations dans l'arbre génétique.</div>
+                <div class="ach-reward">+20 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_genetic_pioneer">EN COURS</span>
+            </div>
+
+            <!-- 8. Grand Myrmécologue -->
+            <div class="ach-card" id="achCard_myrmecologist">
+              <span class="ach-icon">🔬</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.myrmecologist.name">Grand Myrmécologue</div>
+                <div class="ach-desc" data-i18n="ach.myrmecologist.desc">Débloquer l'intégralité des 9 mutations de l'arbre génétique.</div>
+                <div class="ach-reward">+60 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_myrmecologist">EN COURS</span>
+            </div>
+
+            <!-- 9. Greniers Débordants -->
+            <div class="ach-card" id="achCard_food_hoarder">
+              <span class="ach-icon">🍃</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.food_hoarder.name">Greniers Débordants</div>
+                <div class="ach-desc" data-i18n="ach.food_hoarder.desc">Accumuler un stock de plus de 400 unités de nourriture.</div>
+                <div class="ach-reward">+25 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_food_hoarder">EN COURS</span>
+            </div>
+
+            <!-- 10. Maître des Effluves -->
+            <div class="ach-card" id="achCard_pheromone_master">
+              <span class="ach-icon">🧪</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.pheromone_master.name">Maître des Effluves</div>
+                <div class="ach-desc" data-i18n="ach.pheromone_master.desc">Produire un cumul historique de plus de 100 phéromones.</div>
+                <div class="ach-reward">+30 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_pheromone_master">EN COURS</span>
+            </div>
+
+            <!-- 11. Fondateur de Dynastie -->
+            <div class="ach-card" id="achCard_dynasty_founder">
+              <span class="ach-icon">✨</span>
+              <div class="ach-info">
+                <div class="ach-name" data-i18n="ach.dynasty_founder.name">Fondateur de Dynastie</div>
+                <div class="ach-desc" data-i18n="ach.dynasty_founder.desc">Accomplir avec succès votre tout premier Vol Nuptial.</div>
+                <div class="ach-reward">+50 🧪</div>
+              </div>
+              <span class="ach-badge ach-locked" id="achBadge_dynasty_founder">EN COURS</span>
             </div>
           </div>
         </div>
@@ -524,15 +1350,126 @@
 
   <!-- Mobile Bottom Navigation (for smartphones like Pixel) -->
   <nav class="mobile-nav" id="mobileNav">
-    <button class="tab-btn active" data-tab="nursery"><span>🐣</span> <span data-i18n="tab.mobile.nursery">Armée</span></button>
-    <button class="tab-btn" data-tab="rooms"><span>🏛️</span> <span data-i18n="tab.mobile.rooms">Salles</span></button>
-    <button class="tab-btn" data-tab="expeditions"><span>🗺️</span> <span data-i18n="tab.mobile.expeditions">Expéditions</span></button>
-    <button class="tab-btn" data-tab="mutations"><span>🧬</span> <span data-i18n="tab.mobile.mutations">Évolution</span></button>
-    <button class="tab-btn" data-tab="logs"><span>📜</span> <span data-i18n="tab.mobile.logs">Journal</span></button>
+    <button class="tab-btn active" data-tab="colony"><span>🐜</span> <span data-i18n="tab.mobile.colony">Colonie</span></button>
+    <button class="tab-btn" data-tab="army"><span>⚔️</span> <span data-i18n="tab.mobile.army">Armée</span></button>
+    <button class="tab-btn" data-tab="evolution"><span>🧬</span> <span data-i18n="tab.mobile.evolution">Évolution</span></button>
+    <button class="tab-btn" data-tab="logs"><span>📜</span> <span data-i18n="tab.mobile.log">Journal</span></button>
   </nav>
 
-  <!-- Architecture Modulaire : Tokens & i18n -> Renderer Canvas -> Logique Métier -->
+  <!-- Modale de Sauvegarde (Import / Export) -->
+  <div class="modal-backdrop" id="saveModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 data-i18n="save.modal.title">💾 Gestion de la Sauvegarde</h3>
+        <button class="modal-close-btn" id="btnCloseSaveModal" onclick="closeSaveModal()" data-i18n-title="save.close.btn">✕</button>
+      </div>
+      <p class="modal-desc" data-i18n="save.modal.desc">Exportez votre code de sauvegarde pour le conserver en sécurité ou importez une sauvegarde existante.</p>
+      <textarea class="save-textarea" id="saveCodeInput" rows="4" data-i18n-placeholder="save.input.placeholder" placeholder="Collez votre code de sauvegarde (Base64 ou JSON) ici..."></textarea>
+      <div class="save-status-msg" id="saveStatusMsg"></div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="btnExportSave" data-i18n="save.export.btn" onclick="handleExportSaveUI()">📤 Copier le Code d'Export</button>
+        <button class="btn-secondary" id="btnImportSave" data-i18n="save.import.btn" onclick="handleImportSaveUI()">📥 Importer ce Code</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale de Rapport d'Activité Hors-Ligne -->
+  <div class="modal-backdrop" id="offlineModal" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 data-i18n="offline.modal.title">⏳ Rapport d'Activité Hors-Ligne</h3>
+        <button class="modal-close-btn" id="btnCloseOfflineTop" onclick="closeOfflineModal()" data-i18n-title="save.close.btn">✕</button>
+      </div>
+      <p class="modal-desc" id="offlineModalDesc">Pendant votre absence, vos ouvrières ont continué à faire prospérer la fourmilière.</p>
+      <div class="offline-stats-list">
+        <div class="offline-stat-row">
+          <span data-i18n="offline.stat.food">🍃 Nourriture récoltée :</span>
+          <b class="risk-low" id="offlineFoodVal">+0 🍃</b>
+        </div>
+        <div class="offline-stat-row">
+          <span data-i18n="offline.stat.phero">🧪 Phéromones synthétisées :</span>
+          <b class="cost-pheromone" id="offlinePheroVal">+0 🧪</b>
+        </div>
+        <div class="offline-stat-row">
+          <span data-i18n="offline.stat.hatched">🐣 Éclosions du couvain :</span>
+          <b id="offlineHatchedVal">+0</b>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-primary" id="btnCloseOfflineModal" data-i18n="offline.close.btn" onclick="closeOfflineModal()">Reprendre le Commandement</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modale de Confirmation du Vol Nuptial (Prestige 1 - Lot 6) -->
+  <div class="modal-backdrop" id="prestigeModal" aria-hidden="true">
+    <div class="modal-card modal-prestige-card">
+      <div class="modal-header">
+        <h3 data-i18n="prestige.modal.title">👑 Le Vol Nuptial de la Reine</h3>
+        <button class="modal-close-btn" id="btnClosePrestigeTop" onclick="closeNuptialFlightModal()" data-i18n-title="save.close.btn">✕</button>
+      </div>
+      <p class="modal-desc" data-i18n="prestige.modal.desc">Une jeune reine ailée quitte la colonie pour fonder un nouveau nid imprégné des mémoires de ses ancêtres.</p>
+
+      <div class="prestige-gain-banner">
+        <div>Gain immédiat : <b class="gain-dna-val">+<span id="prestigeGainDna">0</span> ADN Royal 🧬</b></div>
+        <div class="gain-bonus-sub">Bonus permanent global : <b>+<span id="prestigeGainBonus">0</span>%</b></div>
+      </div>
+
+      <!-- Décomposition des Sources de Gain & Planificateur -->
+      <div class="prestige-breakdown-card">
+        <div class="breakdown-title">📊 Sources d'ADN Royal & Prochains Paliers :</div>
+        <div class="breakdown-grid">
+          <div class="breakdown-item">
+            <span>👥 Population :</span>
+            <b id="prestigePopBreakdown">+0</b>
+          </div>
+          <div class="breakdown-item">
+            <span>🏛️ Salles :</span>
+            <b id="prestigeRoomBreakdown">+0</b>
+          </div>
+          <div class="breakdown-item">
+            <span>🧪 Phéromones :</span>
+            <b id="prestigePheroBreakdown">+0</b>
+          </div>
+          <div class="breakdown-item">
+            <span>🏆 Hauts Faits :</span>
+            <b id="prestigeAchBreakdown">+0</b>
+          </div>
+        </div>
+        <div class="breakpoint-row">
+          <span>🎯 Prochain palier rentable :</span>
+          <b class="risk-low" id="prestigeNextBreakpoint">-</b>
+        </div>
+      </div>
+
+      <!-- Récapitulatif Conservé / Réinitialisé -->
+      <div class="prestige-rules-grid">
+        <div class="rule-box rule-keep">
+          <div class="rule-box-title" data-i18n="prestige.modal.keep_title">Ce qui est CONSERVÉ :</div>
+          <p data-i18n="prestige.modal.keep_list">ADN Royal cumulé, hauts faits débloqués et statistiques historiques.</p>
+        </div>
+        <div class="rule-box rule-reset">
+          <div class="rule-box-title" data-i18n="prestige.modal.reset_title">Ce qui est RÉINITIALISÉ :</div>
+          <p data-i18n="prestige.modal.reset_list">Ressources de surface, salles souterraines, ouvrières et armée courante.</p>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-prestige" id="btnConfirmPrestige" data-i18n="prestige.modal.confirm_btn" onclick="confirmNuptialFlight()">Prendre son Envol !</button>
+        <button class="btn-secondary" id="btnCancelPrestige" data-i18n="prestige.modal.cancel_btn" onclick="closeNuptialFlightModal()">Attendre encore</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Architecture Modulaire : i18n -> Tokens -> Combat, Évolution & Symbiose -> UI -> Effets & Renderer Canvas -> Logique Métier -->
+  <script src="i18n.js"></script>
   <script src="config.js"></script>
+  <script src="combat.js"></script>
+  <script src="evolution.js"></script>
+  <script src="symbiosis.js"></script>
+  <script src="game-world.js"></script>
+  <script src="game-ui.js"></script>
+  <script src="renderer-effects.js"></script>
   <script src="renderer.js"></script>
   <script src="game.js"></script>
 </body>

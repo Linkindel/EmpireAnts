@@ -3,8 +3,16 @@
  * - Circulation des fourmis par graphe dans les galeries et chambres
  * - Cycle Jour / Nuit + 4 Saisons dynamiques (Printemps, Été, Automne, Hiver avec neige)
  * - Barricade d'entrée évolutive & Champignonnière bioluminescente
- * - Animation des raids de Fourmis Rouges et particules de combat (mandibules & acide)
+ * - Animation des raids de Fourmis Rouges et rendu des castes
+ * Découpage modulaire SOLID : effets météo, textes flottants et particules isolés dans renderer-effects.js.
  */
+
+const fxEngine = (typeof require === 'function')
+  ? require('./renderer-effects.js')
+  : (typeof globalThis !== 'undefined' ? { ...globalThis } : {});
+if (typeof require === 'function' && fxEngine && typeof globalThis !== 'undefined') {
+  Object.assign(globalThis, fxEngine);
+}
 
 let canvas, ctx;
 const visualAnts = [];
@@ -12,7 +20,12 @@ const stars = [];
 const snowflakes = [];
 const grassBlades = [];
 const rockSpeckles = [];
-const combatParticles = [];
+const combatParticles = (fxEngine && fxEngine.combatParticles) || [];
+const floatingTexts = (fxEngine && fxEngine.floatingTexts) || [];
+const seasonalParticles = (fxEngine && fxEngine.seasonalParticles) || [];
+let screenShakeTimer = 0;
+let screenShakeIntensity = 0;
+let hoveredNode = null;
 
 // État visuel des raids ennemis sur le Canvas
 const raidScene = {
@@ -29,15 +42,50 @@ let lastTickTimeSeconds = 0;
 let subSecondAccumulator = 0;
 let lastFrameTimestamp = 0;
 
+function ensureCanvasBindings() {
+  if (typeof globalThis !== 'undefined') {
+    if (globalThis.ctx && globalThis.ctx !== ctx) ctx = globalThis.ctx;
+    if (globalThis.canvas && globalThis.canvas !== canvas) canvas = globalThis.canvas;
+  }
+}
+
+function fillEllipse(x, y, rx, ry, color, rot = 0) {
+  if (color) ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, rot, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function fillCircle(x, y, r, color) {
+  if (color) ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fill();
+}
+
 function initCanvas() {
   canvas = document.getElementById('colonyCanvas');
   if (!canvas) return;
   ctx = canvas.getContext('2d');
+  globalThis.canvas = canvas;
+  globalThis.ctx = ctx;
 
   resizeCanvas();
-  window.addEventListener('resize', resizeCanvas);
+  if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+    window.addEventListener('resize', resizeCanvas);
+  }
+
+  if (typeof canvas.addEventListener === 'function') {
+    canvas.addEventListener('mousemove', handleCanvasMouseMove);
+    canvas.addEventListener('mouseleave', handleCanvasMouseLeave);
+    canvas.addEventListener('click', handleCanvasClick);
+    canvas.addEventListener('touchstart', handleCanvasTouchStart, { passive: true });
+    canvas.addEventListener('touchmove', handleCanvasTouchMove, { passive: true });
+    canvas.addEventListener('touchend', handleCanvasTouchEnd, { passive: true });
+  }
 
   initEnvironmentDetails();
+  initSeasonalParticles();
   syncVisualAntsWithColony();
 }
 
@@ -94,10 +142,189 @@ function initEnvironmentDetails() {
       angle: Math.random() * Math.PI
     });
   }
+
+  initSeasonalParticles();
+}
+
+/**
+ * Détection de survol (Hit-testing) pure et testable sans DOM pour les nœuds du Canvas.
+ * Conforme aux exigences du Lot 2 (parcours dynamique de tout le registre des nœuds).
+ *
+ * @param {number} px Coordonnée X dans le canvas
+ * @param {number} py Coordonnée Y dans le canvas
+ * @param {Object} [nodes=GAME_CONFIG.CANVAS_THEME.nodes] Registre des nœuds
+ * @param {{ width: number, height: number }} [canvasSize] Dimensions du canvas
+ * @returns {{ nodeId: string, node: Object, isChamber: boolean, distance: number, x: number, y: number }|null}
+ */
+function hitTestNode(
+  px,
+  py,
+  nodes = (GAME_CONFIG.CANVAS_THEME && GAME_CONFIG.CANVAS_THEME.nodes),
+  canvasSize = { width: (((typeof globalThis !== 'undefined' && globalThis.canvas) || canvas || {}).width) || 800, height: (((typeof globalThis !== 'undefined' && globalThis.canvas) || canvas || {}).height) || 600 }
+) {
+  ensureCanvasBindings();
+  if (
+    !nodes ||
+    typeof nodes !== 'object' ||
+    !canvasSize ||
+    typeof canvasSize.width !== 'number' ||
+    typeof canvasSize.height !== 'number' ||
+    canvasSize.width <= 0 ||
+    canvasSize.height <= 0 ||
+    typeof px !== 'number' ||
+    typeof py !== 'number' ||
+    !Number.isFinite(px) ||
+    !Number.isFinite(py)
+  ) {
+    return null;
+  }
+
+  const w = canvasSize.width;
+  const h = canvasSize.height;
+  const hitRadius = (GAME_CONFIG.CANVAS_INTERACTION && GAME_CONFIG.CANVAS_INTERACTION.nodeHitRadius) || 28;
+
+  let closest = null;
+  let minDistance = Infinity;
+
+  for (const [nodeId, node] of Object.entries(nodes)) {
+    if (!node || typeof node.xRatio !== 'number' || typeof node.yRatio !== 'number') continue;
+    const nx = node.xRatio * w;
+    const ny = node.yRatio * h;
+
+    if (node.isChamber && node.rx && node.ry) {
+      const dx = px - nx;
+      const dy = py - ny;
+      const normDist = (dx * dx) / (node.rx * node.rx) + (dy * dy) / (node.ry * node.ry);
+      if (normDist <= 1) {
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minDistance) {
+          minDistance = dist;
+          closest = { nodeId, node, isChamber: true, distance: dist, x: nx, y: ny };
+        }
+      }
+    } else {
+      const dx = px - nx;
+      const dy = py - ny;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist <= hitRadius && dist < minDistance) {
+        minDistance = dist;
+        closest = { nodeId, node, isChamber: false, distance: dist, x: nx, y: ny };
+      }
+    }
+  }
+
+  return closest;
+}
+
+function getCanvasRelativeCoords(e) {
+  ensureCanvasBindings();
+  const activeCanvas = (typeof globalThis !== 'undefined' && globalThis.canvas) || canvas;
+  if (!activeCanvas) return { x: 0, y: 0 };
+  const rect = (typeof activeCanvas.getBoundingClientRect === 'function')
+    ? activeCanvas.getBoundingClientRect()
+    : { left: 0, top: 0, width: activeCanvas.width || 800, height: activeCanvas.height || 600 };
+  const touch = (e && e.touches && e.touches.length > 0 && e.touches[0]) ||
+    (e && e.changedTouches && e.changedTouches.length > 0 && e.changedTouches[0]) ||
+    null;
+  const clientX = touch ? touch.clientX : (e && typeof e.clientX === 'number' ? e.clientX : 0);
+  const clientY = touch ? touch.clientY : (e && typeof e.clientY === 'number' ? e.clientY : 0);
+  const scaleX = rect.width > 0 ? (activeCanvas.width || 800) / rect.width : 1;
+  const scaleY = rect.height > 0 ? (activeCanvas.height || 600) / rect.height : 1;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
+}
+
+function handleCanvasMouseMove(e) {
+  ensureCanvasBindings();
+  const activeCanvas = (typeof globalThis !== 'undefined' && globalThis.canvas) || canvas;
+  const coords = getCanvasRelativeCoords(e);
+  hoveredNode = hitTestNode(coords.x, coords.y);
+  globalThis.hoveredNode = hoveredNode;
+  if (activeCanvas && activeCanvas.style) {
+    activeCanvas.style.cursor = hoveredNode ? 'pointer' : 'default';
+  }
+}
+
+function handleCanvasMouseLeave() {
+  hoveredNode = null;
+  globalThis.hoveredNode = null;
+}
+
+function handleCanvasTouchStart(e) {
+  const coords = getCanvasRelativeCoords(e);
+  hoveredNode = hitTestNode(coords.x, coords.y);
+  globalThis.hoveredNode = hoveredNode;
+}
+
+function handleCanvasTouchMove(e) {
+  const coords = getCanvasRelativeCoords(e);
+  hoveredNode = hitTestNode(coords.x, coords.y);
+  globalThis.hoveredNode = hoveredNode;
+}
+
+function handleCanvasTouchEnd(e) {
+  const activeHover = hoveredNode || globalThis.hoveredNode;
+  if (activeHover) {
+    handleCanvasClick(e);
+    setTimeout(() => {
+      hoveredNode = null;
+      globalThis.hoveredNode = null;
+    }, 1800);
+  }
+}
+
+function handleCanvasClick(e) {
+  let hit = null;
+  const hasCoords = e && (typeof e.clientX === 'number' || (e.touches && e.touches.length > 0) || (e.changedTouches && e.changedTouches.length > 0));
+  if (hasCoords) {
+    const coords = getCanvasRelativeCoords(e);
+    hit = hitTestNode(coords.x, coords.y);
+  } else {
+    hit = hoveredNode || globalThis.hoveredNode;
+  }
+  if (!hit || !hit.node) return;
+
+  const node = hit.node;
+  if (node.interaction === 'harvest') {
+    if (typeof harvestSurfaceDeposit === 'function') {
+      harvestSurfaceDeposit(node.depositKey || 'left');
+    }
+  } else if (node.interaction === 'room' && node.roomKey) {
+    if (e && e.shiftKey) {
+      if (typeof upgradeRoom === 'function') {
+        upgradeRoom(node.roomKey);
+      }
+    } else {
+      if (typeof selectRoomInUI === 'function') {
+        selectRoomInUI(node.roomKey);
+      } else if (typeof upgradeRoom === 'function') {
+        upgradeRoom(node.roomKey);
+      }
+    }
+  } else if (node.interaction === 'barricade') {
+    if (e && e.shiftKey) {
+      if (typeof upgradeRoom === 'function') {
+        upgradeRoom('barricade');
+      }
+    } else {
+      if (typeof selectRoomInUI === 'function') {
+        selectRoomInUI('barricade');
+      } else if (typeof upgradeRoom === 'function') {
+        upgradeRoom('barricade');
+      }
+    }
+  } else if (node.interaction === 'nursery') {
+    if (typeof switchTab === 'function') {
+      switchTab('nursery');
+    }
+  }
 }
 
 // --- GRAPHE DE NAVIGATION DES GALERIES ---
 function getNodePixelPos(nodeId) {
+  ensureCanvasBindings();
   const node = GAME_CONFIG.CANVAS_THEME.nodes[nodeId];
   if (!node || !canvas) return { x: 0, y: 0 };
   return {
@@ -180,6 +407,12 @@ function chooseGoalNodeForAnt(ant) {
     return guardPoints[Math.floor(Math.random() * guardPoints.length)];
   }
 
+  if (ant.role === 'nurse') {
+    if (raidImminent) return 'nursery';
+    const nursePoints = hasFungus ? ['nursery', 'queen', 'fungus'] : ['nursery', 'queen'];
+    return nursePoints[Math.floor(Math.random() * nursePoints.length)];
+  }
+
   return 'queen';
 }
 
@@ -208,17 +441,20 @@ function createVisualAnt(role, startNodeId = 'queen') {
 
 function syncVisualAntsWithColony() {
   const caps = GAME_CONFIG.CANVAS_THEME.maxVisualAntsPerCaste;
-  const roles = ['worker', 'scout', 'warrior', 'tank'];
+  const roles = ['worker', 'scout', 'warrior', 'tank', 'nurse'];
 
   roles.forEach(role => {
-    const deployedInExp = (gameState.activeExpedition && gameState.activeExpedition.squadSnapshot[role]) || 0;
-    const inNestCount = Math.max(0, (gameState.ants[role] || 0) - deployedInExp);
-    const desired = Math.min(inNestCount, caps[role]);
+    const deployedInExp = (gameState.activeExpedition && gameState.activeExpedition.squadSnapshot && gameState.activeExpedition.squadSnapshot[role]) || 0;
+    const inNestCount = Math.max(0, (gameState.ants && gameState.ants[role] || 0) - deployedInExp);
+    const capForRole = (caps && caps[role]) !== undefined ? caps[role] : 6;
+    const desired = Math.min(inNestCount, capForRole);
     const currentAnts = visualAnts.filter(a => a.role === role);
 
     if (currentAnts.length < desired) {
       const toAdd = desired - currentAnts.length;
-      const defaultStart = role === 'warrior' || role === 'tank' ? 'dorm' : 'queen';
+      let defaultStart = 'queen';
+      if (role === 'warrior' || role === 'tank') defaultStart = 'dorm';
+      else if (role === 'nurse') defaultStart = 'nursery';
       for (let i = 0; i < toAdd; i++) {
         visualAnts.push(createVisualAnt(role, defaultStart));
       }
@@ -244,8 +480,9 @@ function triggerAntSpawnEffect(caste) {
 }
 
 // --- DÉCLENCHEMENT VISUEL DES RAIDS ENNEMIS ---
-window.triggerRaidVisuals = function(victory) {
-  if (!canvas) return;
+function triggerRaidVisuals(victory) {
+  const activeCanvas = canvas || (typeof globalThis !== 'undefined' && globalThis.canvas);
+  if (!activeCanvas) return;
   const raidCfg = GAME_CONFIG.RAIDS;
   raidScene.active = true;
   raidScene.victory = victory;
@@ -284,6 +521,22 @@ window.triggerRaidVisuals = function(victory) {
   });
 };
 
+// --- DÉLÉGATION DES EFFETS VISUELS VERS renderer-effects.js ---
+const initSeasonalParticles = (...args) => fxEngine.initSeasonalParticles(...args);
+const updateAndDrawSeasonalParticles = (...args) => fxEngine.updateAndDrawSeasonalParticles(...args);
+const triggerScreenShake = (intensity = 5.5, duration = 18) => {
+  screenShakeIntensity = intensity;
+  screenShakeTimer = duration;
+  return fxEngine.triggerScreenShake(intensity, duration);
+};
+const spawnCanvasFloatingText = (...args) => fxEngine.spawnCanvasFloatingText(...args);
+const updateAndDrawFloatingTexts = (...args) => fxEngine.updateAndDrawFloatingTexts(...args);
+const drawPheromoneTrails = (...args) => fxEngine.drawPheromoneTrails(...args);
+const drawBioluminescentSpores = (...args) => fxEngine.drawBioluminescentSpores(...args);
+const drawHoverHaloAndTooltip = (...args) => fxEngine.drawHoverHaloAndTooltip(...args);
+const spawnCombatParticle = (...args) => fxEngine.spawnCombatParticle(...args);
+const updateAndDrawCombatParticles = (...args) => fxEngine.updateAndDrawCombatParticles(...args);
+
 // --- BOUCLE DE RENDU PRINCIPALE (60 FPS) ---
 function renderCanvasLoop(timestamp) {
   if (!ctx || !canvas) return;
@@ -304,6 +557,16 @@ function renderCanvasLoop(timestamp) {
   const h = canvas.height;
   ctx.clearRect(0, 0, w, h);
 
+  ctx.save();
+  if (screenShakeTimer > 0) {
+    screenShakeTimer--;
+    const shakeAngle = Math.random() * Math.PI * 2;
+    const currentIntensity = screenShakeIntensity * (screenShakeTimer / 18);
+    const shakeX = Math.cos(shakeAngle) * currentIntensity;
+    const shakeY = Math.sin(shakeAngle) * currentIntensity;
+    ctx.translate(shakeX, shakeY);
+  }
+
   // 1. Ciel dynamique (Cycle Jour/Nuit + 4 Saisons), Soleil/Lune, Herbe et Tertre
   const surfaceY = h * GAME_CONFIG.CANVAS_THEME.surfaceHeightRatio;
   drawSkyAndSurface(w, h, surfaceY, timestamp);
@@ -313,9 +576,11 @@ function renderCanvasLoop(timestamp) {
 
   // 3. Tunnels du réseau souterrain
   drawAllTunnels();
+  drawPheromoneTrails(timestamp, w, h);
 
   // 4. Chambres souterraines & Détails internes
   drawAllChambers();
+  drawBioluminescentSpores(timestamp);
 
   // 5. Barricade d'entrée
   drawBarricade();
@@ -330,6 +595,12 @@ function renderCanvasLoop(timestamp) {
   // 8. Indicateur visuel d'expédition en surface
   drawSurfaceExpeditionBanner(w, surfaceY);
 
+  // 9. Textes flottants & Infobulles interactives
+  updateAndDrawFloatingTexts();
+  drawHoverHaloAndTooltip(w, h);
+
+  ctx.restore();
+
   requestAnimationFrame(renderCanvasLoop);
 }
 
@@ -342,8 +613,10 @@ function lerpColor(rgbA, rgbB, tRatio) {
 }
 
 function drawSkyAndSurface(w, h, surfaceY, timestamp) {
+  ensureCanvasBindings();
   const theme = GAME_CONFIG.CANVAS_THEME;
   const dn = theme.dayNight;
+  const aaa = theme.worldAAA || {};
   const season = typeof getCurrentSeasonConfig === 'function'
     ? getCurrentSeasonConfig()
     : GAME_CONFIG.SEASONS.summer;
@@ -428,6 +701,21 @@ function drawSkyAndSurface(w, h, surfaceY, timestamp) {
     ctx.beginPath();
     ctx.arc(sunX, sunY, 15, 0, Math.PI * 2);
     ctx.fill();
+
+    // Rayons chauds du soleil en Été
+    const sDetails = (theme && theme.seasonalDetails) || {};
+    if (season.id === 'summer' && sDetails.summerSunRayCount) {
+      ctx.strokeStyle = sDetails.summerSunRayColor || 'rgba(254, 240, 138, 0.14)';
+      ctx.lineWidth = 1.6;
+      const rayLen = sDetails.summerSunRayLength || 48;
+      for (let r = 0; r < sDetails.summerSunRayCount; r++) {
+        const rayAngle = (timestamp * 0.0006) + (r * (Math.PI * 2 / sDetails.summerSunRayCount));
+        ctx.beginPath();
+        ctx.moveTo(sunX, sunY);
+        ctx.lineTo(sunX + Math.cos(rayAngle) * rayLen, sunY + Math.sin(rayAngle) * rayLen);
+        ctx.stroke();
+      }
+    }
   } else {
     const moonT = (dayProgress - 0.68) / 0.32;
     const moonX = w * (0.15 + moonT * 0.70);
@@ -462,13 +750,34 @@ function drawSkyAndSurface(w, h, surfaceY, timestamp) {
     ctx.restore();
   }
 
-  // Sol herbeux teinté selon la saison
+  // Particules météo saisonnières (Pollen au printemps, lucioles en été, feuilles en automne)
+  updateAndDrawSeasonalParticles(w, h, surfaceY, timestamp, season);
+
+  // Sol herbeux teinté selon la saison + profondeur de champ AAA (herbes géantes d'arrière-plan)
+  ctx.save();
+  ctx.globalAlpha = aaa.bgGrassAlpha || 0.28;
+  ctx.strokeStyle = starAlpha > 0.5 ? season.grassNight : season.grassDay;
+  ctx.lineWidth = 3.2;
+  ctx.lineCap = 'round';
+  const bgScale = aaa.bgGrassScale || 2.1;
+  for (let i = 0; i < grassBlades.length; i += 2) {
+    const b = grassBlades[i];
+    const bx = b.xRatio * w;
+    const sway = Math.sin(timestamp * 0.0014 + b.phase) * 4.5;
+    const bh = b.height * bgScale;
+    ctx.beginPath();
+    ctx.moveTo(bx, surfaceY - 3);
+    ctx.quadraticCurveTo(bx + b.tilt * 1.4, surfaceY - 3 - bh * 0.5, bx + b.tilt * 1.8 + sway, surfaceY - 3 - bh);
+    ctx.stroke();
+  }
+  ctx.restore();
+
   ctx.fillStyle = starAlpha > 0.5 ? season.grassNight : season.grassDay;
   ctx.fillRect(0, surfaceY - 7, w, 9);
 
   ctx.save();
   ctx.strokeStyle = starAlpha > 0.5 ? season.grassDay : season.grassBladeColor;
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = 1.9;
   ctx.lineCap = 'round';
   grassBlades.forEach(b => {
     const bx = b.xRatio * w;
@@ -480,52 +789,86 @@ function drawSkyAndSurface(w, h, surfaceY, timestamp) {
   });
   ctx.restore();
 
-  // Gisements visuels en surface
-  drawSurfaceResources(w, surfaceY, season);
+  // Fleurs sauvages au Printemps
+  const sDetails = (theme && theme.seasonalDetails) || {};
+  if (season.id === 'spring' && sDetails.springFlowerCount) {
+    ctx.save();
+    const flowerColors = sDetails.springFlowerColors || ['#f687b3', '#faf089', '#ffffff'];
+    const centerColor = sDetails.springFlowerCenterColor || '#ecc94b';
+    for (let f = 0; f < sDetails.springFlowerCount; f++) {
+      const fx = w * (0.07 + f * 0.11 + (f % 2 === 0 ? 0.02 : 0));
+      if (fx > w * 0.40 && fx < w * 0.60) continue;
+      const fy = surfaceY - 8 - (f % 3) * 3;
+      ctx.fillStyle = flowerColors[f % flowerColors.length];
+      ctx.beginPath();
+      ctx.arc(fx, fy, 2.5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = centerColor;
+      ctx.beginPath();
+      ctx.arc(fx, fy, 1.1, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
+  }
 
-  // Tertre de la fourmilière
+  // Gisements visuels en surface
+  drawSurfaceResources(w, surfaceY, season, timestamp);
+  if (typeof drawLivingBridgeEffect === 'function') {
+    drawLivingBridgeEffect(w, surfaceY);
+  }
+
+  // Tertre 3D de la fourmilière
   ctx.save();
-  const moundGrad = ctx.createLinearGradient(w * 0.4, surfaceY - 28, w * 0.6, surfaceY);
+  const moundGrad = ctx.createLinearGradient(w * 0.4, surfaceY - 32, w * 0.6, surfaceY + 4);
   moundGrad.addColorStop(0, theme.moundHighlight);
   moundGrad.addColorStop(1, theme.moundColor);
   ctx.fillStyle = moundGrad;
   ctx.beginPath();
-  ctx.moveTo(w * 0.39, surfaceY);
-  ctx.quadraticCurveTo(w * 0.5, surfaceY - 30, w * 0.61, surfaceY);
+  ctx.moveTo(w * 0.38, surfaceY);
+  ctx.quadraticCurveTo(w * 0.5, surfaceY - 32, w * 0.62, surfaceY);
   ctx.fill();
 
-  // Entrée sombre du nid
+  // Couche de givre hivernal sur le dôme
+  if (season.id === 'winter' && sDetails.winterMoundFrostColor) {
+    ctx.save();
+    ctx.strokeStyle = sDetails.winterMoundFrostColor;
+    ctx.lineWidth = sDetails.winterMoundFrostWidth || 2.5;
+    ctx.beginPath();
+    ctx.moveTo(w * 0.41, surfaceY - 4);
+    ctx.quadraticCurveTo(w * 0.5, surfaceY - 31, w * 0.59, surfaceY - 4);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  // Cratère d'entrée 3D avec rebord éclairé
+  ctx.strokeStyle = theme.moundHighlight;
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.ellipse(w * 0.5, surfaceY - 3, 24, 10, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
   ctx.fillStyle = theme.entranceColor;
   ctx.beginPath();
   ctx.ellipse(w * 0.5, surfaceY - 3, 22, 9, 0, 0, Math.PI * 2);
   ctx.fill();
-  ctx.restore();
-}
 
-function drawSurfaceResources(w, surfaceY, season) {
-  const theme = GAME_CONFIG.CANVAS_THEME;
-  ctx.save();
-  const leftX = w * theme.nodes.surface_left.xRatio;
-  ctx.fillStyle = season.leafDepositColor;
-  for (let i = -2; i <= 2; i++) {
-    ctx.beginPath();
-    ctx.ellipse(leftX + i * 7, surfaceY - 9 - Math.abs(i % 2) * 4, 6, 3.5, i * 0.3, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  const rightX = w * theme.nodes.surface_right.xRatio;
-  ctx.fillStyle = theme.seedCarryColor;
-  for (let i = -2; i <= 2; i++) {
-    ctx.beginPath();
-    ctx.arc(rightX + i * 6, surfaceY - 7 - (i % 2) * 3, 3.2, 0, Math.PI * 2);
-    ctx.fill();
+  if (typeof drawSurfaceDomeVentilation === 'function') {
+    drawSurfaceDomeVentilation(w, surfaceY, timestamp);
   }
   ctx.restore();
 }
 
-// --- 2. SOUS-SOL & GALERIES ---
+function drawSurfaceResources(w, surfaceY, season, timestamp = 0) {
+  if (typeof globalThis.drawSurfaceResources === 'function' && globalThis.drawSurfaceResources !== drawSurfaceResources) {
+    return globalThis.drawSurfaceResources(w, surfaceY, season, timestamp);
+  }
+}
+
+// --- 2. SOUS-SOL & GALERIES 3D ---
 function drawUndergroundBackground(w, h, surfaceY) {
+  ensureCanvasBindings();
   const theme = GAME_CONFIG.CANVAS_THEME;
+  const aaa = theme.worldAAA || {};
   const earthGrad = ctx.createLinearGradient(0, surfaceY, 0, h);
   earthGrad.addColorStop(0, theme.earthGradientTop);
   earthGrad.addColorStop(0.5, theme.earthGradientMid);
@@ -533,48 +876,103 @@ function drawUndergroundBackground(w, h, surfaceY) {
   ctx.fillStyle = earthGrad;
   ctx.fillRect(0, surfaceY, w, h - surfaceY);
 
+  // Strates géologiques subtiles + racines végétales sous la surface
   ctx.save();
+  ctx.strokeStyle = aaa.strataLineColor || 'rgba(255, 215, 170, 0.04)';
+  ctx.lineWidth = 2;
+  for (let s = 1; s <= 4; s++) {
+    const sy = surfaceY + (h - surfaceY) * (s * 0.2);
+    ctx.beginPath();
+    ctx.moveTo(0, sy);
+    ctx.quadraticCurveTo(w * 0.5, sy + (s % 2 === 0 ? 14 : -14), w, sy);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = aaa.rootColor || 'rgba(139, 90, 43, 0.35)';
+  ctx.lineWidth = 1.6;
+  for (let r = 0; r < 8; r++) {
+    const rx = w * (0.08 + r * 0.12);
+    if (rx > w * 0.42 && rx < w * 0.58) continue;
+    ctx.beginPath();
+    ctx.moveTo(rx, surfaceY);
+    ctx.quadraticCurveTo(rx + (r % 2 === 0 ? 8 : -8), surfaceY + 18, rx + (r % 2 === 0 ? -4 : 5), surfaceY + 34);
+    ctx.stroke();
+  }
+
   ctx.fillStyle = theme.rockSpeckleColor;
   rockSpeckles.forEach(r => {
     ctx.beginPath();
     ctx.ellipse(r.xRatio * w, r.yRatio * h, r.rx, r.ry, r.angle, 0, Math.PI * 2);
     ctx.fill();
   });
+
+  // Puits de lumière volumétrique sous l'entrée du dôme
+  const rayGrad = ctx.createLinearGradient(w * 0.5, surfaceY, w * 0.5, surfaceY + 110);
+  rayGrad.addColorStop(0, aaa.godRayColor || 'rgba(254, 243, 199, 0.09)');
+  rayGrad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+  ctx.fillStyle = rayGrad;
+  ctx.beginPath();
+  ctx.moveTo(w * 0.47, surfaceY);
+  ctx.lineTo(w * 0.53, surfaceY);
+  ctx.lineTo(w * 0.58, surfaceY + 110);
+  ctx.lineTo(w * 0.42, surfaceY + 110);
+  ctx.closePath();
+  ctx.fill();
   ctx.restore();
 }
 
 function drawAllTunnels() {
+  ensureCanvasBindings();
   const theme = GAME_CONFIG.CANVAS_THEME;
+  const aaa = theme.worldAAA || {};
   GAME_CONFIG.CANVAS_THEME.edges.forEach(([a, b]) => {
     if (a.startsWith('surface') && b === 'entrance') return;
     if (b.startsWith('surface') && a === 'entrance') return;
-    // Masquer les galeries vers la champignonnière tant qu'elle est au niveau 0
     if ((a === 'fungus' || b === 'fungus') && gameState.rooms.fungus <= 0) return;
 
     const p1 = getNodePixelPos(a);
     const p2 = getNodePixelPos(b);
 
     ctx.save();
-    ctx.strokeStyle = theme.tunnelOuterColor;
-    ctx.lineWidth = theme.tunnelWidth + 6;
     ctx.lineCap = 'round';
+    // Paroi externe ombrée 3D
+    ctx.strokeStyle = aaa.tunnelShadowColor || 'rgba(5, 3, 2, 0.65)';
+    ctx.lineWidth = theme.tunnelWidth + 10;
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
     ctx.lineTo(p2.x, p2.y);
     ctx.stroke();
 
+    // Paroi de terre excavée
+    ctx.strokeStyle = theme.tunnelOuterColor;
+    ctx.lineWidth = theme.tunnelWidth + 5;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y);
+    ctx.lineTo(p2.x, p2.y);
+    ctx.stroke();
+
+    // Cavité centrale du tunnel
     ctx.strokeStyle = theme.tunnelColor;
     ctx.lineWidth = theme.tunnelWidth;
     ctx.beginPath();
     ctx.moveTo(p1.x, p1.y);
     ctx.lineTo(p2.x, p2.y);
     ctx.stroke();
+
+    // Reflet de sol de galerie
+    ctx.strokeStyle = aaa.tunnelHighlightColor || 'rgba(214, 158, 46, 0.08)';
+    ctx.lineWidth = theme.tunnelWidth * 0.35;
+    ctx.beginPath();
+    ctx.moveTo(p1.x, p1.y + 2);
+    ctx.lineTo(p2.x, p2.y + 2);
+    ctx.stroke();
     ctx.restore();
   });
 }
 
-// --- 3. CHAMBRES SOUTERRAINES & DÉTAILS INTERNES ---
+// --- 3. CHAMBRES SOUTERRAINES 3D & DÉTAILS INTERNES ---
 function drawAllChambers() {
+  ensureCanvasBindings();
   const nodes = GAME_CONFIG.CANVAS_THEME.nodes;
   Object.keys(nodes).forEach(nodeId => {
     const n = nodes[nodeId];
@@ -604,21 +1002,36 @@ function drawAllChambers() {
       drawFungusDetails(pos.x, pos.y, rx, ry, roomLvl);
     } else if (nodeId === 'nursery') {
       drawNurseryDetails(pos.x, pos.y, rx, ry);
+    } else if (nodeId === 'aphid_farm') {
+      if (typeof drawAphidFarmDetails === 'function') {
+        drawAphidFarmDetails(pos.x, pos.y, rx, ry, roomLvl);
+      }
+    } else if (nodeId === 'masonry_hall') {
+      if (typeof drawMasonryHallDetails === 'function') {
+        drawMasonryHallDetails(pos.x, pos.y, rx, ry, roomLvl);
+      }
+    } else if (nodeId === 'abyss_shaft') {
+      if (typeof drawAbyssShaftDetails === 'function') {
+        drawAbyssShaftDetails(pos.x, pos.y, rx, ry);
+      }
     }
   });
+
+  if (typeof drawActiveChamberConstructions === 'function') {
+    drawActiveChamberConstructions(nodes);
+  }
 }
 
 function drawUnbuiltChamber(x, y, rx, ry, label) {
-  const theme = GAME_CONFIG.CANVAS_THEME;
   ctx.save();
-  ctx.strokeStyle = 'rgba(166, 152, 136, 0.2)';
-  ctx.setLineDash([4, 4]);
+  ctx.strokeStyle = 'rgba(166, 152, 136, 0.25)';
+  if (typeof ctx.setLineDash === 'function') ctx.setLineDash([4, 4]);
   ctx.lineWidth = 1.8;
   ctx.beginPath();
   ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
   ctx.stroke();
 
-  ctx.fillStyle = 'rgba(166, 152, 136, 0.45)';
+  ctx.fillStyle = 'rgba(166, 152, 136, 0.5)';
   ctx.font = '500 9.5px Outfit, sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(`🍄 ${label} (${t('canvas.unbuilt')})`, x, y + 3);
@@ -627,7 +1040,17 @@ function drawUnbuiltChamber(x, y, rx, ry, label) {
 
 function drawChamberBase(x, y, rx, ry, label, roomLvl, roomKey, bgColor) {
   const theme = GAME_CONFIG.CANVAS_THEME;
+  const aaa = theme.worldAAA || {};
   ctx.save();
+
+  // Ombre caverneuse externe
+  ctx.strokeStyle = aaa.chamberShadowColor || 'rgba(6, 4, 2, 0.72)';
+  ctx.lineWidth = 7;
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx + 2, ry + 2, 0, 0, Math.PI * 2);
+  ctx.stroke();
+
+  // Fond de la cavité + bordure rocheuse
   ctx.fillStyle = bgColor;
   ctx.strokeStyle = theme.chamberStrokeColor;
   ctx.lineWidth = 3.5;
@@ -636,213 +1059,126 @@ function drawChamberBase(x, y, rx, ry, label, roomLvl, roomKey, bgColor) {
   ctx.fill();
   ctx.stroke();
 
+  // Éclairage zénithal chaud au sol de la chambre
+  ctx.fillStyle = aaa.chamberInnerGlow || 'rgba(246, 173, 85, 0.14)';
+  ctx.beginPath();
+  ctx.ellipse(x, y + ry * 0.15, rx * 0.78, ry * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Pilule de titre AAA
+  const lvlText = roomKey ? ` • ${t('canvas.lvl.short')} ${roomLvl}` : '';
+  const fullLabel = `${label}${lvlText}`;
   ctx.fillStyle = theme.chamberLabelColor;
   ctx.font = '600 10px Outfit, sans-serif';
   ctx.textAlign = 'center';
-  const lvlText = roomKey ? ` (${t('canvas.lvl.short')} ${roomLvl})` : '';
-  ctx.fillText(`${label}${lvlText}`, x, y + ry - 8);
+  ctx.fillText(fullLabel, x, y + ry - 7);
   ctx.restore();
 }
 
 function drawQueenChamberDetails(x, y, rx, ry) {
-  const details = GAME_CONFIG.CANVAS_THEME.chamberDetails;
-  ctx.save();
-  ctx.fillStyle = details.royalRugColor;
-  ctx.beginPath();
-  ctx.ellipse(x, y - 3, rx * 0.65, ry * 0.45, 0, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.restore();
-
-  drawQueen(x, y);
+  if (typeof globalThis.drawQueenChamberDetails === 'function' && globalThis.drawQueenChamberDetails !== drawQueenChamberDetails) {
+    return globalThis.drawQueenChamberDetails(x, y, rx, ry);
+  }
 }
 
 function drawGranaryDetails(x, y, rx, ry) {
-  const details = GAME_CONFIG.CANVAS_THEME.chamberDetails;
-  const fillRatio = Math.min(1, Math.max(0, gameState.food / gameState.maxFood));
-  const itemCount = Math.floor(fillRatio * 22);
-
-  ctx.save();
-  for (let i = 0; i < itemCount; i++) {
-    const row = Math.floor(i / 6);
-    const col = (i % 6) - 2.5;
-    const ix = x + col * (rx * 0.22);
-    const iy = y + 6 - row * 6;
-
-    ctx.fillStyle = i % 2 === 0 ? details.seedColor : details.leafColor;
-    ctx.beginPath();
-    ctx.ellipse(ix, iy, 4.5, 2.8, (i * 0.5) % Math.PI, 0, Math.PI * 2);
-    ctx.fill();
+  if (typeof globalThis.drawGranaryDetails === 'function' && globalThis.drawGranaryDetails !== drawGranaryDetails) {
+    return globalThis.drawGranaryDetails(x, y, rx, ry);
   }
-  ctx.restore();
 }
 
 function drawDormDetails(x, y, rx, ry, lvl) {
-  const details = GAME_CONFIG.CANVAS_THEME.chamberDetails;
-  const alcoves = Math.min(5, 2 + Math.floor(lvl / 2));
-  ctx.save();
-  ctx.fillStyle = details.dormBunkColor;
-  for (let i = 0; i < alcoves; i++) {
-    const offset = (i - (alcoves - 1) / 2) * 20;
-    ctx.beginPath();
-    ctx.ellipse(x + offset, y - 4, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
+  if (typeof globalThis.drawDormDetails === 'function' && globalThis.drawDormDetails !== drawDormDetails) {
+    return globalThis.drawDormDetails(x, y, rx, ry, lvl);
   }
-  ctx.restore();
 }
 
 function drawFungusDetails(x, y, rx, ry, lvl) {
-  const details = GAME_CONFIG.CANVAS_THEME.chamberDetails;
-  const count = Math.min(8, 2 + lvl * 2);
-  ctx.save();
-  ctx.fillStyle = details.mushroomGlow;
-  ctx.beginPath();
-  ctx.ellipse(x, y - 2, rx * 0.65, ry * 0.45, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  for (let i = 0; i < count; i++) {
-    const mx = x + (i - (count - 1) / 2) * 12;
-    const my = y + 2 - (i % 2) * 5;
-
-    // Pied du champignon
-    ctx.fillStyle = details.mushroomStem;
-    ctx.fillRect(mx - 1.5, my - 5, 3, 6);
-
-    // Chapeau bioluminescent
-    ctx.fillStyle = details.mushroomCap;
-    ctx.beginPath();
-    ctx.arc(mx, my - 5, 5.5, Math.PI, 0);
-    ctx.fill();
+  if (typeof globalThis.drawFungusDetails === 'function' && globalThis.drawFungusDetails !== drawFungusDetails) {
+    return globalThis.drawFungusDetails(x, y, rx, ry, lvl);
   }
-  ctx.restore();
 }
 
 function drawNurseryDetails(x, y, rx, ry) {
-  const details = GAME_CONFIG.CANVAS_THEME.chamberDetails;
-  const activeEggsCount = gameState.eggs ? gameState.eggs.length : 0;
-  const baseEggs = Math.min(14, 4 + gameState.rooms.queen * 2 + activeEggsCount);
-
-  ctx.save();
-  for (let i = 0; i < baseEggs; i++) {
-    const angle = (i / baseEggs) * Math.PI * 2;
-    const dist = (i % 3) * 8 + 5;
-    const ex = x + Math.cos(angle) * dist * 1.3;
-    const ey = y - 4 + Math.sin(angle) * dist * 0.6;
-    const isIncubating = i < activeEggsCount;
-
-    ctx.fillStyle = details.eggShadow;
-    ctx.beginPath();
-    ctx.ellipse(ex, ey + 1, 4.5, 2.8, angle * 0.2, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = isIncubating ? details.eggActiveColor : details.eggColor;
-    ctx.beginPath();
-    ctx.ellipse(ex, ey, isIncubating ? 4.4 : 3.6, isIncubating ? 2.7 : 2.2, angle * 0.2, 0, Math.PI * 2);
-    ctx.fill();
+  if (typeof globalThis.drawNurseryDetails === 'function' && globalThis.drawNurseryDetails !== drawNurseryDetails) {
+    return globalThis.drawNurseryDetails(x, y, rx, ry);
   }
-  ctx.restore();
 }
 
 // --- 4. BARRICADE D'ENTRÉE ---
 function drawBarricade() {
-  const lvl = gameState.rooms.barricade;
-  const pos = getNodePixelPos('barricade');
-  const bTheme = GAME_CONFIG.CANVAS_THEME.barricadeVisual;
-
-  ctx.save();
-  ctx.translate(pos.x, pos.y);
-
-  if (lvl <= 0) {
-    ctx.strokeStyle = 'rgba(166, 152, 136, 0.22)';
-    ctx.setLineDash([3, 3]);
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 16, 7, 0, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-    return;
+  if (typeof globalThis.drawBarricade === 'function' && globalThis.drawBarricade !== drawBarricade) {
+    return globalThis.drawBarricade();
   }
-
-  ctx.fillStyle = bTheme.shieldGlow;
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 22 + Math.min(10, lvl * 2), 12, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const logsCount = Math.min(7, 2 + lvl);
-  for (let i = 0; i < logsCount; i++) {
-    const yOff = (i - (logsCount - 1) / 2) * 2.5;
-    const tilt = (i % 2 === 0 ? 1 : -1) * 0.18;
-    ctx.save();
-    ctx.translate(0, yOff);
-    ctx.rotate(tilt);
-    ctx.fillStyle = i % 2 === 0 ? bTheme.woodDark : bTheme.woodLight;
-    ctx.fillRect(-18, -2.5, 36, 5);
-    ctx.restore();
-  }
-
-  ctx.fillStyle = bTheme.stoneColor;
-  ctx.beginPath();
-  ctx.arc(-16, 2, 5, 0, Math.PI * 2);
-  ctx.arc(16, 2, 5, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = bTheme.badgeBg;
-  ctx.strokeStyle = bTheme.badgeBorder;
-  ctx.lineWidth = 1.2;
-  ctx.beginPath();
-  ctx.roundRect(22, -9, 54, 17, 6);
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = bTheme.badgeText;
-  ctx.font = '700 9.5px Outfit, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.fillText(`🧱 ${t('canvas.lvl.short')}${lvl}`, 49, 3);
-
-  ctx.restore();
 }
 
-// --- 5. REINE ---
+// --- 5. REINE (RENDU 3D CGI STYLE FILM FOURMIZ / ANTZ) ---
 function drawQueen(x, y) {
+  ensureCanvasBindings();
   const qTheme = GAME_CONFIG.CANVAS_THEME.queen;
-  const pulse = 1 + Math.sin(performance.now() * 0.003) * 0.04;
+  const antz = GAME_CONFIG.CANVAS_THEME.antzStyle || {};
+  const now = performance.now();
+  const pulse = 1 + Math.sin(now * 0.003) * 0.045;
+  const antWave = Math.sin(now * 0.005) * 2.2;
 
   ctx.save();
-  ctx.translate(x, y - 5);
+  ctx.translate(x, y - 4);
+  fillEllipse(-2, 2, 32 * pulse, 18 * pulse, antz.queenAuraColor || 'rgba(236, 201, 75, 0.24)');
+  fillEllipse(-1, 5, 28, 12, antz.dropShadowColor || 'rgba(8, 5, 3, 0.48)');
 
-  ctx.fillStyle = qTheme.abdomen;
-  ctx.beginPath();
-  ctx.ellipse(-12, 0, 18 * pulse, 12 * pulse, 0, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.strokeStyle = GAME_CONFIG.CANVAS_THEME.antLegColor;
+  ctx.lineWidth = 1.8;
+  ctx.lineCap = 'round';
+  [-1, 1].forEach(side => {
+    [-1, 0, 1].forEach(idx => {
+      const baseX = 4 + idx * 4.5;
+      ctx.beginPath();
+      ctx.moveTo(baseX, side * 3);
+      ctx.lineTo(baseX - 1.5 + Math.sin(now * 0.002 + idx) * 0.8, side * (9 + Math.abs(idx) * 1.5));
+      ctx.lineTo(baseX + idx * 3.5, side * (15 + (idx === 0 ? 2 : 0)));
+      ctx.stroke();
+    });
+  });
 
+  fillEllipse(-14, 0, 19 * pulse, 12.5 * pulse, qTheme.abdomen);
   ctx.strokeStyle = qTheme.abdomenStripe;
-  ctx.lineWidth = 2;
-  for (let s = -18; s <= -6; s += 6) {
+  ctx.lineWidth = 2.2;
+  for (let s = -24; s <= -5; s += 5) {
+    const hSeg = Math.sqrt(Math.max(0.1, 1 - Math.pow((s + 14) / 19, 2))) * 11.5 * pulse;
     ctx.beginPath();
-    ctx.moveTo(s, -9 * pulse);
-    ctx.quadraticCurveTo(s + 2, 0, s, 9 * pulse);
+    ctx.moveTo(s, -hSeg);
+    ctx.quadraticCurveTo(s + 2.5, 0, s, hSeg);
     ctx.stroke();
   }
+  fillEllipse(-15, -4.2 * pulse, 12 * pulse, 4.2 * pulse, qTheme.abdomenHighlight || '#f6ad55', -0.08);
+  fillEllipse(-17, -5.2 * pulse, 6.5 * pulse, 1.8 * pulse, antz.specularColor || 'rgba(255, 246, 224, 0.58)', -0.1);
+  fillEllipse(2, 0, 3.2, 2.6, antz.petioleColor || '#3d1f0d');
+  fillEllipse(9, 0, 8.5, 7, qTheme.thorax);
+  fillEllipse(5, -2.5, 9, 3.6, antz.queenCapeColor || 'rgba(254, 243, 199, 0.24)', -0.25);
+  fillEllipse(5, 2.5, 9, 3.6, antz.queenCapeColor || 'rgba(254, 243, 199, 0.24)', 0.25);
+  fillEllipse(9, -2.8, 5, 2, antz.specularColor || 'rgba(255, 246, 224, 0.58)');
+  fillEllipse(19.5, 0, 6.8, 6.2, qTheme.head);
 
-  ctx.fillStyle = qTheme.thorax;
+  ctx.fillStyle = antz.queenCrownColor || '#f6e05e';
   ctx.beginPath();
-  ctx.ellipse(6, 0, 9, 8, 0, 0, Math.PI * 2);
+  ctx.moveTo(16, -3.5); ctx.lineTo(19, -6.5); ctx.lineTo(18.5, -1.5); ctx.lineTo(22, -3);
+  ctx.lineTo(19.5, 0); ctx.lineTo(22, 3); ctx.lineTo(18.5, 1.5); ctx.lineTo(19, 6.5); ctx.lineTo(16, 3.5);
+  ctx.closePath();
   ctx.fill();
 
-  ctx.fillStyle = qTheme.head;
-  ctx.beginPath();
-  ctx.ellipse(18, 0, 7, 7, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  const antWave = Math.sin(performance.now() * 0.006) * 2;
-  ctx.strokeStyle = qTheme.antennae;
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(22, -3);
-  ctx.lineTo(29, -8 + antWave);
-  ctx.moveTo(22, 3);
-  ctx.lineTo(29, 8 - antWave);
-  ctx.stroke();
-
+  [-1, 1].forEach(side => {
+    const ey = side * 3.4;
+    fillEllipse(21.5, ey, 2.4, 1.8, qTheme.eyeColor || '#fef3c7', side * 0.25);
+    fillCircle(22.2, ey, 1.0, qTheme.pupilColor || '#261005');
+    fillCircle(21.6, ey - 0.5, 0.55, antz.eyeCatchlight || '#ffffff');
+    ctx.strokeStyle = qTheme.antennae;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(24.5, side * 2.2);
+    ctx.lineTo(28.5, side * 6.5 + antWave * 0.4);
+    ctx.lineTo(33, side * 4.5 + antWave);
+    ctx.stroke();
+  });
   ctx.restore();
 }
 
@@ -1052,42 +1388,6 @@ function drawApproachingEnemyScouts() {
   }
 }
 
-function spawnCombatParticle(x, y, useAcid) {
-  const cTheme = GAME_CONFIG.CANVAS_THEME.combat;
-  const isAcid = useAcid && Math.random() < 0.55;
-  combatParticles.push({
-    x,
-    y,
-    vx: (Math.random() - 0.5) * 3.2,
-    vy: (Math.random() - 0.5) * 3.2,
-    radius: isAcid ? 3.5 : 2.2,
-    color: isAcid ? cTheme.acidColor : (Math.random() < 0.5 ? cTheme.sparkColor : cTheme.bloodColor),
-    alpha: 1.0
-  });
-}
-
-function updateAndDrawCombatParticles() {
-  for (let i = combatParticles.length - 1; i >= 0; i--) {
-    const p = combatParticles[i];
-    if (gameState.speed > 0) {
-      p.x += p.vx * gameState.speed;
-      p.y += p.vy * gameState.speed;
-      p.alpha -= 0.04 * gameState.speed;
-    }
-    if (p.alpha <= 0) {
-      combatParticles.splice(i, 1);
-      continue;
-    }
-    ctx.save();
-    ctx.globalAlpha = p.alpha;
-    ctx.fillStyle = p.color;
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-}
-
 // --- 8. BANNIÈRE D'EXPÉDITION EN SURFACE ---
 function drawSurfaceExpeditionBanner(w, surfaceY) {
   if (!gameState.activeExpedition) return;
@@ -1112,81 +1412,150 @@ function drawSurfaceExpeditionBanner(w, surfaceY) {
   ctx.restore();
 }
 
-// --- DESSIN D'UNE FOURMI (COLONIE OU ENNEMIE) ---
+// --- DESSIN D'UNE FOURMI 3D CGI (STYLE FILM FOURMIZ / ANTZ : VOLUMES, YEUX EXPRESSIFS, PATTES ARTICULÉES) ---
 function drawAnt(x, y, vx, vy, role, phase, carrying) {
+  ensureCanvasBindings();
   const theme = GAME_CONFIG.CANVAS_THEME;
+  const antz = theme.antzStyle || {};
   const isEnemy = role === 'enemy';
   const casteToken = isEnemy ? theme.enemyAnt : (GAME_CONFIG.CASTES[role] || GAME_CONFIG.CASTES.worker);
 
   ctx.save();
   ctx.translate(x, y);
-
-  const angle = Math.atan2(vy, vx);
-  ctx.rotate(angle);
+  ctx.rotate(Math.atan2(vy, vx));
   ctx.scale(casteToken.scale, casteToken.scale);
 
-  if (isEnemy) {
-    ctx.fillStyle = theme.enemyAnt.glowColor;
-    ctx.beginPath();
-    ctx.ellipse(0, 0, 8, 5, 0, 0, Math.PI * 2);
-    ctx.fill();
-  }
+  fillEllipse(-0.5, 1.8, 7.5, 4.2, antz.dropShadowColor || 'rgba(8, 5, 3, 0.48)');
+  if (isEnemy) fillEllipse(0, 0, 9.5, 6, theme.enemyAnt.glowColor);
+  else if (role === 'nurse') fillEllipse(-5.5, 0, 6.5, 5, casteToken.honeyGlow || 'rgba(251, 191, 36, 0.45)');
 
   ctx.strokeStyle = isEnemy ? theme.enemyAnt.legColor : theme.antLegColor;
-  ctx.lineWidth = 1.1;
-  const legOffset = Math.sin(phase) * 2.8;
-  ctx.beginPath();
-  ctx.moveTo(-3, -5 + legOffset);
-  ctx.lineTo(-2, 0);
-  ctx.lineTo(-3, 5 - legOffset);
-  ctx.moveTo(0, -5.5 - legOffset);
-  ctx.lineTo(0, 0);
-  ctx.lineTo(0, 5.5 + legOffset);
-  ctx.moveTo(3, -5 + legOffset);
-  ctx.lineTo(2, 0);
-  ctx.lineTo(3, 5 - legOffset);
-  ctx.stroke();
+  ctx.lineWidth = role === 'tank' ? 1.35 : 1.05;
+  ctx.lineCap = 'round';
+  const gait = Math.sin(phase) * 2.4;
+  [-1, 1].forEach(side => {
+    [-1, 0, 1].forEach(legIdx => {
+      const swing = gait * (legIdx === 0 ? -1 : 1) * side;
+      const hipX = legIdx * 2.2;
+      ctx.beginPath();
+      ctx.moveTo(hipX, side * 1.4);
+      ctx.lineTo(hipX + swing * 0.45, side * 4.2);
+      ctx.lineTo(hipX + legIdx * 1.6 + swing, side * (6.8 + (legIdx === 0 ? 0.8 : 0)));
+      ctx.stroke();
+    });
+  });
 
-  ctx.fillStyle = casteToken.canvasColor;
-  ctx.beginPath();
-  ctx.ellipse(-5, 0, 4.2, 3, 0, 0, Math.PI * 2);
-  ctx.fill();
+  const gastreRx = role === 'nurse' ? 5.2 : (role === 'tank' ? 4.8 : 4.5);
+  const gastreRy = role === 'nurse' ? 3.9 : (role === 'tank' ? 3.5 : 3.1);
+  fillEllipse(-6.2, 0, gastreRx, gastreRy, casteToken.canvasColor);
 
-  ctx.beginPath();
-  ctx.ellipse(0, 0, 2.6, 2, 0, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.fillStyle = casteToken.headColor || casteToken.canvasColor;
-  ctx.beginPath();
-  if (role === 'tank') {
-    ctx.ellipse(4.2, 0, 4, 3.6, 0, 0, Math.PI * 2);
-  } else {
-    ctx.ellipse(4, 0, 2.6, 2.3, 0, 0, Math.PI * 2);
-  }
-  ctx.fill();
-
-  if (role === 'warrior' || role === 'tank' || isEnemy) {
-    ctx.strokeStyle = isEnemy ? '#fbd38d' : '#e2e8f0';
-    ctx.lineWidth = 0.9;
+  ctx.strokeStyle = casteToken.stripeColor || '#3d1f0d';
+  ctx.lineWidth = 0.85;
+  [-8.2, -6.2, -4.2].forEach(sx => {
     ctx.beginPath();
-    ctx.moveTo(6, -1.5);
-    ctx.lineTo(8.2, -0.6);
-    ctx.moveTo(6, 1.5);
-    ctx.lineTo(8.2, 0.6);
+    ctx.moveTo(sx, -gastreRy * 0.82);
+    ctx.quadraticCurveTo(sx + 0.9, 0, sx, gastreRy * 0.82);
+    ctx.stroke();
+  });
+
+  fillEllipse(-6.8, -gastreRy * 0.38, gastreRx * 0.58, gastreRy * 0.34,
+    role === 'nurse' ? 'rgba(254, 240, 138, 0.75)' : (casteToken.highlightColor || antz.specularColor || 'rgba(255, 246, 224, 0.55)'), -0.1);
+  fillEllipse(-2.1, 0, 1.2, 0.95, antz.petioleColor || '#3d1f0d');
+  fillEllipse(0.6, 0, 3.1, 2.2, casteToken.canvasColor);
+
+  if (role === 'warrior' || role === 'tank') fillEllipse(0.8, 0, 2.5, 1.9, casteToken.armorColor || '#d69e2e');
+  else fillEllipse(0.6, -0.7, 1.8, 0.75, antz.specularColor || 'rgba(255, 246, 224, 0.58)');
+
+  const headX = role === 'tank' ? 4.8 : 4.4;
+  const headRx = role === 'tank' ? 4.1 : (role === 'warrior' ? 3.1 : 2.8);
+  const headRy = role === 'tank' ? 3.7 : (role === 'warrior' ? 2.7 : 2.4);
+  fillEllipse(headX, 0, headRx, headRy, casteToken.headColor || casteToken.canvasColor);
+
+  if (role === 'tank') {
+    ctx.strokeStyle = casteToken.armorColor || '#d69e2e';
+    ctx.lineWidth = 1.1;
+    ctx.beginPath();
+    ctx.arc(headX - 0.5, 0, headRy * 0.75, -Math.PI * 0.6, Math.PI * 0.6);
     ctx.stroke();
   }
 
+  const eyeX = headX + headRx * 0.28, eyeSpread = headRy * 0.68;
+  const antWiggle = Math.sin(phase * 0.5) * 0.9;
+  const isFighter = role === 'warrior' || role === 'tank' || isEnemy;
+  const jawLen = isFighter ? 2.8 : 1.5;
+
+  [-1, 1].forEach(side => {
+    const ey = side * eyeSpread;
+    fillEllipse(eyeX, ey, 1.25, 0.95, casteToken.eyeColor || '#fef3c7', side * 0.25);
+    fillCircle(eyeX + 0.35, ey, 0.52, casteToken.pupilColor || '#261005');
+    fillCircle(eyeX + 0.1, ey - 0.25, 0.28, antz.eyeCatchlight || '#ffffff');
+
+    ctx.strokeStyle = isEnemy ? theme.enemyAnt.legColor : theme.antLegColor;
+    ctx.lineWidth = 0.85;
+    ctx.beginPath();
+    ctx.moveTo(headX + headRx * 0.65, side * 1.1);
+    ctx.lineTo(headX + headRx + 1.8, side * 3.1 + antWiggle * 0.5);
+    ctx.lineTo(headX + headRx + 3.8, side * 2.1 + antWiggle);
+    ctx.stroke();
+
+    ctx.strokeStyle = isFighter ? (isEnemy ? '#fbd38d' : (antz.mandibleSteel || '#e2e8f0')) : (casteToken.highlightColor || '#ed9b5a');
+    ctx.lineWidth = isFighter ? 1.15 : 0.8;
+    ctx.beginPath();
+    ctx.moveTo(headX + headRx * 0.75, side * 1.35);
+    ctx.quadraticCurveTo(headX + headRx + jawLen * 0.6, side * 1.6, headX + headRx + jawLen, side * 0.35);
+    ctx.stroke();
+  });
+
   if (carrying === 'leaf') {
-    ctx.fillStyle = theme.leafColor;
+    const lx = headX + headRx + 3.2;
+    fillEllipse(lx, 0, 4.5, 2.7, theme.leafColor, 0.35);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+    ctx.lineWidth = 0.7;
     ctx.beginPath();
-    ctx.ellipse(8.5, 0, 4.2, 2.5, 0.35, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(lx - 2.8, -0.8);
+    ctx.lineTo(lx + 2.8, 0.8);
+    ctx.stroke();
   } else if (carrying === 'seed') {
-    ctx.fillStyle = theme.seedCarryColor;
+    const sx = headX + headRx + 2.6;
+    fillCircle(sx, 0, 2.7, theme.seedCarryColor);
+    fillCircle(sx - 0.8, -0.8, 0.8, '#ffffff');
+  } else if (carrying === 'honeydew') {
+    const hx = headX + headRx + 2.8;
+    fillEllipse(hx, 0, 3.2, 2.4, '#ecc94b', 0.1);
+    fillCircle(hx - 0.7, -0.6, 0.7, '#ffffff');
+  } else if (carrying === 'twigs') {
+    const tx = headX + headRx + 2.8;
+    ctx.strokeStyle = '#d69e2e';
+    ctx.lineWidth = 1.6;
     ctx.beginPath();
-    ctx.arc(8, 0, 2.6, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.moveTo(tx - 3, -3);
+    ctx.lineTo(tx + 3, 3);
+    ctx.stroke();
+  } else if (carrying === 'chitin') {
+    const cx = headX + headRx + 2.6;
+    fillEllipse(cx, 0, 3.0, 2.1, '#319795', -0.2);
+    fillCircle(cx - 0.6, -0.6, 0.6, '#ffffff');
   }
 
   ctx.restore();
+}
+
+// Export unifié pour l'environnement de test Node.js et modularité globale
+const rendererScope = typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : {});
+const rendererExports = {
+  visualAnts, stars, snowflakes, combatParticles, floatingTexts, seasonalParticles, raidScene,
+  initCanvas, resizeCanvas, initEnvironmentDetails, syncVisualAntsWithColony, triggerAntSpawnEffect,
+  triggerRaidVisuals, spawnCombatParticle, updateAndDrawCombatParticles, renderCanvasLoop,
+  drawSkyAndSurface, drawUndergroundBackground, drawAllTunnels, drawAllChambers, drawBarricade,
+  drawQueen, drawAnt, updateAndDrawColonyAnts, updateAndDrawRaidScene, drawSurfaceExpeditionBanner,
+  hitTestNode, triggerScreenShake, spawnCanvasFloatingText, updateAndDrawFloatingTexts,
+  drawPheromoneTrails, drawBioluminescentSpores, initSeasonalParticles, updateAndDrawSeasonalParticles,
+  drawHoverHaloAndTooltip, handleCanvasClick, handleCanvasMouseMove, handleCanvasMouseLeave,
+  handleCanvasTouchStart, handleCanvasTouchMove, handleCanvasTouchEnd
+};
+Object.assign(rendererScope, rendererExports);
+
+/* c8 ignore next 3 */
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = rendererExports;
 }

@@ -1,0 +1,306 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": 1792527884833,
+  "tasks": [
+    {
+      "id": "lot-1-socle-et-tests",
+      "title": {
+        "fr": "Lot 1 : Socle Architectural Senior & Banc de Tests (passation/LOT_1_SOCLE_ET_TESTS.md)",
+        "en": "Batch 1: Senior Architectural Foundation & Test Suite (passation/LOT_1_SOCLE_ET_TESTS.md)"
+      },
+      "prompt": {
+        "fr": "Consulter CONTEXT.md et passation/LOT_1_SOCLE_ET_TESTS.md, exécuter intégralement le Lot 1 avec couverture de tests >= 80% et parité FR/EN, puis mettre à jour CONTEXT.md et passation/ROADMAP_PASSATION.md.",
+        "en": "Read CONTEXT.md and passation/LOT_1_SOCLE_ET_TESTS.md, execute Batch 1 completely with >= 80% test coverage and FR/EN parity, then update CONTEXT.md and passation/ROADMAP_PASSATION.md."
+      },
+      "priority": 1,
+      "status": "completed",
+      "createdAt": 1792452900000,
+      "updatedAt": 1792454311477
+    },
+    {
+      "id": "roadmap-next-lots",
+      "title": {
+        "fr": "Poursuite automatique des Lots suivants (Lots 2 à 16 de passation/ROADMAP_PASSATION.md)",
+        "en": "Automatic continuation of subsequent Batches (Batches 2 to 16 in passation/ROADMAP_PASSATION.md)"
+      },
+      "prompt": {
+        "fr": "Consulter CONTEXT.md et passation/ROADMAP_PASSATION.md, identifier le prochain lot actif non terminé et l'implémenter avec tests >= 80% et parité bilingue FR/EN.",
+        "en": "Read CONTEXT.md and passation/ROADMAP_PASSATION.md, identify the next active uncompleted batch and implement it with >= 80% tests and FR/EN bilingual parity."
+      },
+      "priority": 2,
+      "status": "pending",
+      "createdAt": 1792452900000,
+      "updatedAt": 1792452900000
+    },
+    {
+      "id": "passation-lot-1",
+      "title": {
+        "fr": "Lot 1 : LOT_1_SOCLE_ET_TESTS.md",
+        "en": "Batch 1: LOT_1_SOCLE_ET_TESTS.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 1 (passation/LOT_1_SOCLE_ET_TESTS.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 1 (passation/LOT_1_SOCLE_ET_TESTS.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 1,
+      "status": "completed",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792527884833
+    },
+    {
+      "id": "passation-lot-2",
+      "title": {
+        "fr": "Lot 2 : LOT_2_CANVAS_LIVING_WORLD.md",
+        "en": "Batch 2: LOT_2_CANVAS_LIVING_WORLD.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 2 (passation/LOT_2_CANVAS_LIVING_WORLD.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 2 (passation/LOT_2_CANVAS_LIVING_WORLD.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 2,
+      "status": "completed",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792527884833
+    },
+    {
+      "id": "passation-lot-3",
+      "title": {
+        "fr": "Lot 3 : LOT_3_GAMEPLAY_CASTES_BOSS.md",
+        "en": "Batch 3: LOT_3_GAMEPLAY_CASTES_BOSS.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 3 (passation/LOT_3_GAMEPLAY_CASTES_BOSS.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 3 (passation/LOT_3_GAMEPLAY_CASTES_BOSS.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 3,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-4",
+      "title": {
+        "fr": "Lot 4 : LOT_4_ARBRE_QUETES_PRESTIGE.md",
+        "en": "Batch 4: LOT_4_ARBRE_QUETES_PRESTIGE.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 4 (passation/LOT_4_ARBRE_QUETES_PRESTIGE.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 4 (passation/LOT_4_ARBRE_QUETES_PRESTIGE.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 4,
+      "status": "completed",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792527884833
+    },
+    {
+      "id": "passation-lot-5",
+      "title": {
+        "fr": "Lot 5 : LOT_5_UX_COMMAND_CENTER.md",
+        "en": "Batch 5: LOT_5_UX_COMMAND_CENTER.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 5 (passation/LOT_5_UX_COMMAND_CENTER.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 5 (passation/LOT_5_UX_COMMAND_CENTER.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 5,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-6",
+      "title": {
+        "fr": "Lot 6 : LOT_6_GENETIQUE_HAUTS_FAITS_ET_VOL_NUPTIAL.md",
+        "en": "Batch 6: LOT_6_GENETIQUE_HAUTS_FAITS_ET_VOL_NUPTIAL.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 6 (passation/LOT_6_GENETIQUE_HAUTS_FAITS_ET_VOL_NUPTIAL.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 6 (passation/LOT_6_GENETIQUE_HAUTS_FAITS_ET_VOL_NUPTIAL.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 6,
+      "status": "completed",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792527884833
+    },
+    {
+      "id": "passation-lot-7",
+      "title": {
+        "fr": "Lot 7 : LOT_7_SYMBIOSE_ET_RAFFINAGE.md",
+        "en": "Batch 7: LOT_7_SYMBIOSE_ET_RAFFINAGE.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 7 (passation/LOT_7_SYMBIOSE_ET_RAFFINAGE.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 7 (passation/LOT_7_SYMBIOSE_ET_RAFFINAGE.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 7,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-8",
+      "title": {
+        "fr": "Lot 8 : LOT_8_CARTE_MONDE_ET_TERRITOIRES.md",
+        "en": "Batch 8: LOT_8_CARTE_MONDE_ET_TERRITOIRES.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 8 (passation/LOT_8_CARTE_MONDE_ET_TERRITOIRES.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 8 (passation/LOT_8_CARTE_MONDE_ET_TERRITOIRES.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 8,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-9",
+      "title": {
+        "fr": "Lot 9 : LOT_9_ESPECES_ET_BIOMES.md",
+        "en": "Batch 9: LOT_9_ESPECES_ET_BIOMES.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 9 (passation/LOT_9_ESPECES_ET_BIOMES.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 9 (passation/LOT_9_ESPECES_ET_BIOMES.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 9,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-10",
+      "title": {
+        "fr": "Lot 10 : LOT_10_SUPERCOLONIE_ET_AUTOMATISATION.md",
+        "en": "Batch 10: LOT_10_SUPERCOLONIE_ET_AUTOMATISATION.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 10 (passation/LOT_10_SUPERCOLONIE_ET_AUTOMATISATION.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 10 (passation/LOT_10_SUPERCOLONIE_ET_AUTOMATISATION.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 10,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-11",
+      "title": {
+        "fr": "Lot 11 : LOT_11_ABIMES_INFINIS_ET_RELIQUES.md",
+        "en": "Batch 11: LOT_11_ABIMES_INFINIS_ET_RELIQUES.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 11 (passation/LOT_11_ABIMES_INFINIS_ET_RELIQUES.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 11 (passation/LOT_11_ABIMES_INFINIS_ET_RELIQUES.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 11,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-12",
+      "title": {
+        "fr": "Lot 12 : LOT_12_DEFIS_ET_CODEX_INFINI.md",
+        "en": "Batch 12: LOT_12_DEFIS_ET_CODEX_INFINI.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 12 (passation/LOT_12_DEFIS_ET_CODEX_INFINI.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 12 (passation/LOT_12_DEFIS_ET_CODEX_INFINI.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 12,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-13",
+      "title": {
+        "fr": "Lot 13 : LOT_13_CRAFTING_ET_OUTILS_EXPLORATION.md",
+        "en": "Batch 13: LOT_13_CRAFTING_ET_OUTILS_EXPLORATION.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 13 (passation/LOT_13_CRAFTING_ET_OUTILS_EXPLORATION.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 13 (passation/LOT_13_CRAFTING_ET_OUTILS_EXPLORATION.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 13,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-14",
+      "title": {
+        "fr": "Lot 14 : LOT_14_ARMURERIE_ET_EQUIPEMENT_FOURMIS.md",
+        "en": "Batch 14: LOT_14_ARMURERIE_ET_EQUIPEMENT_FOURMIS.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 14 (passation/LOT_14_ARMURERIE_ET_EQUIPEMENT_FOURMIS.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 14 (passation/LOT_14_ARMURERIE_ET_EQUIPEMENT_FOURMIS.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 14,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-15",
+      "title": {
+        "fr": "Lot 15 : LOT_15_DOMPTAGE_ECURIE_ET_MONTURES.md",
+        "en": "Batch 15: LOT_15_DOMPTAGE_ECURIE_ET_MONTURES.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 15 (passation/LOT_15_DOMPTAGE_ECURIE_ET_MONTURES.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 15 (passation/LOT_15_DOMPTAGE_ECURIE_ET_MONTURES.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 15,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-16",
+      "title": {
+        "fr": "Lot 16 : LOT_16_PNJ_BOUTIQUE_ET_LORE.md",
+        "en": "Batch 16: LOT_16_PNJ_BOUTIQUE_ET_LORE.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 16 (passation/LOT_16_PNJ_BOUTIQUE_ET_LORE.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 16 (passation/LOT_16_PNJ_BOUTIQUE_ET_LORE.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 16,
+      "status": "pending",
+      "createdAt": 1792453263173,
+      "updatedAt": 1792453263173
+    },
+    {
+      "id": "passation-lot-17",
+      "title": {
+        "fr": "Lot 17 : LOT_17_JARDIN_BOTANIQUE_MYRMECOPHILE.md",
+        "en": "Batch 17: LOT_17_JARDIN_BOTANIQUE_MYRMECOPHILE.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 17 (passation/LOT_17_JARDIN_BOTANIQUE_MYRMECOPHILE.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 17 (passation/LOT_17_JARDIN_BOTANIQUE_MYRMECOPHILE.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 17,
+      "status": "pending",
+      "createdAt": 1792527225023,
+      "updatedAt": 1792527225023
+    },
+    {
+      "id": "passation-lot-18",
+      "title": {
+        "fr": "Lot 18 : LOT_18_CITES_SOEURS_ET_LEVIATHANS.md",
+        "en": "Batch 18: LOT_18_CITES_SOEURS_ET_LEVIATHANS.md"
+      },
+      "prompt": {
+        "fr": "Continue le dossier de passation : exécute le Lot 18 (passation/LOT_18_CITES_SOEURS_ET_LEVIATHANS.md) dans passation/ROADMAP_PASSATION.md jusqu'à validation complète (tests >= 80%, FR/EN, statut ✅ TERMINÉ).",
+        "en": "Continue the passation folder: execute Batch 18 (passation/LOT_18_CITES_SOEURS_ET_LEVIATHANS.md) in passation/ROADMAP_PASSATION.md until full completion (tests >= 80%, FR/EN, ✅ TERMINÉ status)."
+      },
+      "priority": 18,
+      "status": "pending",
+      "createdAt": 1792527225023,
+      "updatedAt": 1792527225023
+    }
+  ]
+}

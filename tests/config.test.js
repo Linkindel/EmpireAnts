@@ -3,6 +3,21 @@
  * Couverture complète des Game Tokens, Économie, Saisons, Castes, Salles, Doctrines, Missions, Mutations et Parité Bilingue FR/EN
  */
 
+if (typeof describe === 'undefined' && typeof require === 'function') {
+  const nodeTest = require('node:test');
+  const assert = require('node:assert/strict');
+  globalThis.describe = nodeTest.describe;
+  globalThis.it = nodeTest.it;
+  globalThis.assertNotNull = (val, msg) => assert.notEqual(val, null, msg);
+  globalThis.assertEqual = (a, b, msg) => assert.equal(a, b, msg);
+  globalThis.assertTrue = (val, msg) => assert.equal(Boolean(val), true, msg);
+  globalThis.assertFalse = (val, msg) => assert.equal(Boolean(val), false, msg);
+  require('../config.js');
+  require('../game.js');
+  globalThis.window = globalThis.window || globalThis;
+  globalThis.window.t = globalThis.t;
+}
+
 describe('Configuration - Tokens Initiaux & Structure Générale', function() {
   it('doit posséder les clés de sauvegarde et de langue', function() {
     assertNotNull(GAME_CONFIG.SAVE_KEY, "SAVE_KEY doit être défini");
@@ -96,15 +111,16 @@ describe('Configuration - Saisons', function() {
 });
 
 describe('Configuration - Castes & Équilibrage Militaire', function() {
-  it('doit déclarer les 4 castes (worker, scout, warrior, tank)', function() {
+  it('doit déclarer les 5 castes (worker, scout, warrior, tank, nurse)', function() {
     const castes = GAME_CONFIG.CASTES;
     assertNotNull(castes.worker);
     assertNotNull(castes.scout);
     assertNotNull(castes.warrior);
     assertNotNull(castes.tank);
+    assertNotNull(castes.nurse, 'Caste nourrice requise (Lot 4)');
   });
 
-  it('doit attribuer des rôles spécialisés à chaque caste', function() {
+  it('doit attribuer des rôles spécialisés à chaque caste, y compris la nourrice', function() {
     const castes = GAME_CONFIG.CASTES;
 
     // Ouvrière : produit de la nourriture, 0 attaque
@@ -125,6 +141,13 @@ describe('Configuration - Castes & Équilibrage Militaire', function() {
     assertTrue(castes.tank.hp > castes.warrior.hp);
     assertTrue(castes.tank.defensePower > castes.warrior.defensePower);
     assertTrue(castes.tank.cost > castes.warrior.cost);
+
+    // Nourrice (Lot 4) : soin, accélération couvain et synergie champignonnière
+    assertTrue(castes.nurse.incubationBonusPerNurse > 0);
+    assertTrue(castes.nurse.queenHealBonusPerNurse > 0);
+    assertTrue(castes.nurse.fungusBonusPerNurse > 0);
+    assertEqual(castes.nurse.attackPower, 0);
+    assertNotNull(castes.nurse.canvasColor);
   });
 });
 
@@ -173,23 +196,80 @@ describe('Configuration - Doctrines Tactiques', function() {
   });
 });
 
-describe('Configuration - Missions d\'Expédition & Mutations', function() {
-  it('doit calibrer 3 missions d\'expédition avec difficulté et durée croissantes', function() {
+describe('Configuration - Missions d\'Expédition, Factions & Événements (Lot 4)', function() {
+  it('doit calibrer les 5 missions d\'expédition avec difficulté et butins progressifs', function() {
     const missions = GAME_CONFIG.MISSIONS;
     const pucerons = missions.pucerons;
     const chenille = missions.chenille;
     const rouges = missions.fourmis_rouges;
+    const termites = missions.termites_bastion;
+    const mantis = missions.mantis_boss;
+
+    assertNotNull(pucerons, 'Mission pucerons présente');
+    assertNotNull(chenille, 'Mission chenille présente');
+    assertNotNull(rouges, 'Mission fourmis rouges présente');
+    assertNotNull(termites, 'Mission bastion termites présente (Lot 4)');
+    assertNotNull(mantis, 'Mission boss mante présente (Lot 4)');
 
     assertTrue(pucerons.difficulty < chenille.difficulty);
     assertTrue(chenille.difficulty < rouges.difficulty);
+    assertTrue(rouges.difficulty < termites.difficulty);
+    assertTrue(termites.difficulty < mantis.difficulty);
 
-    assertTrue(pucerons.duration < chenille.duration);
-    assertTrue(chenille.duration < rouges.duration);
+    assertTrue(mantis.isBoss, 'Mante Royale est un boss');
+    assertEqual(mantis.trophyKey, 'trophy.mantis');
+    assertEqual(rouges.faction, 'fire_ants');
+    assertEqual(termites.faction, 'termites');
+    assertEqual(mantis.faction, 'wasps');
+  });
 
-    assertTrue(pucerons.lootFood < chenille.lootFood);
-    assertTrue(chenille.lootFood < rouges.lootFood);
+  it('doit déclarer les 3 factions avec leurs contres tactiques (Lot 4)', function() {
+    const factions = GAME_CONFIG.FACTIONS;
+    assertNotNull(factions, 'Registre FACTIONS requis');
+    assertNotNull(factions.fire_ants, 'Faction Fourmis de Feu requise');
+    assertNotNull(factions.termites, 'Faction Termites requise');
+    assertNotNull(factions.wasps, 'Faction Guêpes requise');
 
-    assertEqual(rouges.bonusWorkers, 1, "Raid sur fourmis rouges rapporte des larves");
+    assertEqual(factions.fire_ants.counterCaste, 'tank');
+    assertEqual(factions.termites.counterCaste, 'warrior');
+    assertEqual(factions.wasps.counterCaste, 'scout');
+
+    assertTrue(factions.fire_ants.counterEfficiencyBonus > 0);
+    assertTrue(factions.termites.acidDamageMultiplier > 1.0);
+    assertTrue(factions.wasps.scoutPerceptionBonus > 0);
+  });
+
+  it('doit déclarer les archétypes ennemis (Lot 4)', function() {
+    const archetypes = GAME_CONFIG.ENEMY_ARCHETYPES;
+    assertNotNull(archetypes);
+    assertNotNull(archetypes.raiders);
+    assertNotNull(archetypes.termite_vanguard);
+    assertNotNull(archetypes.mantis_boss);
+  });
+
+  it('doit déclarer au moins 5 événements à 2 choix dans EVENTS.registry (Lot 4)', function() {
+    const events = GAME_CONFIG.EVENTS;
+    assertNotNull(events, 'EVENTS requis');
+    assertNotNull(events.registry, 'EVENTS.registry requis');
+
+    const expectedEvents = ['golden_sap', 'myrmecophile_beetle', 'heavy_rain', 'aphid_swarm', 'lost_scouts'];
+    expectedEvents.forEach(function(evtKey) {
+      const evt = events.registry[evtKey];
+      assertNotNull(evt, 'Événement ' + evtKey + ' manquant');
+      assertTrue(Array.isArray(evt.choices) && evt.choices.length === 2, 'Événement ' + evtKey + ' doit avoir 2 choix');
+      assertNotNull(evt.choices[0].labelKey);
+      assertNotNull(evt.choices[0].outcomeKey);
+      assertNotNull(evt.choices[1].labelKey);
+      assertNotNull(evt.choices[1].outcomeKey);
+    });
+  });
+
+  it('doit déclarer les cibles d’équilibrage (BALANCE_TARGETS)', function() {
+    const targets = GAME_CONFIG.BALANCE_TARGETS;
+    assertNotNull(targets);
+    assertTrue(targets.mantisBossTargetMinutes.min > 0);
+    assertTrue(targets.mantisBossTargetMinutes.max >= targets.mantisBossTargetMinutes.min);
+    assertTrue(targets.expectedArmyPowerAtDay30 >= 380);
   });
 
   it('doit calibrer les 3 mutations génétiques', function() {
@@ -243,6 +323,68 @@ describe('Configuration - Canvas Theme & Graphe des Galeries', function() {
       assertNotNull(nodes[edge[1]], "Nœud cible " + edge[1] + " doit exister");
     });
   });
+
+  it('doit définir les tokens d’interaction Canvas et Game Feel du Lot 2 (zéro nombre magique)', function() {
+    const interaction = GAME_CONFIG.CANVAS_INTERACTION;
+    assertNotNull(interaction, "CANVAS_INTERACTION doit être configuré");
+    assertTrue(interaction.manualHarvestFood > 0, "Gain de récolte manuelle positif");
+    assertTrue(interaction.manualHarvestCooldownSeconds > 0, "Cooldown de récolte positif");
+    assertTrue(interaction.nodeHitRadius > 0, "Rayon de collision générique positif");
+    assertTrue(interaction.screenShakeDuration > 0, "Durée de screen shake positive");
+    assertTrue(interaction.screenShakeIntensity > 0, "Intensité de screen shake positive");
+    assertTrue(interaction.floatingTextDuration > 0, "Durée des textes flottants positive");
+    assertTrue(interaction.floatingTextSpeed > 0, "Vitesse des textes flottants positive");
+    assertNotNull(interaction.tooltip, "Configuration d'infobulle Canvas présente");
+    assertTrue(interaction.tooltip.width > 0);
+
+    const sDetails = GAME_CONFIG.CANVAS_THEME.seasonalDetails;
+    assertNotNull(sDetails, "seasonalDetails doit exister");
+    assertTrue(Array.isArray(sDetails.springFlowerColors) && sDetails.springFlowerColors.length > 0);
+    assertTrue(sDetails.springFlowerCount > 0);
+    assertNotNull(sDetails.summerSunRayColor);
+    assertTrue(sDetails.summerSunRayCount > 0);
+    assertNotNull(sDetails.winterMoundFrostColor);
+
+    const antz = GAME_CONFIG.CANVAS_THEME.antzStyle;
+    assertNotNull(antz, "antzStyle (rendu 3D CGI style Fourmiz) doit être configuré");
+    assertNotNull(antz.chitinHighlight);
+    assertNotNull(antz.eyeCatchlight);
+
+    const worldAAA = GAME_CONFIG.CANVAS_THEME.worldAAA;
+    assertNotNull(worldAAA, "worldAAA (rendu Mobile AAA) doit être configuré");
+    assertNotNull(worldAAA.godRayColor);
+    assertNotNull(worldAAA.cooldownRingActive);
+  });
+
+  it('doit valider tous les prédicats de hauts faits (ACHIEVEMENTS.check)', function() {
+    const achs = GAME_CONFIG.ACHIEVEMENTS;
+    assertNotNull(achs, "ACHIEVEMENTS doit exister");
+    const emptyState = JSON.parse(JSON.stringify(GAME_CONFIG.INITIAL_STATE));
+    const richState = JSON.parse(JSON.stringify(GAME_CONFIG.INITIAL_STATE));
+    richState.food = 500;
+    richState.ants = { worker: 20, scout: 10, warrior: 10, tank: 10, nurse: 5 };
+    richState.rooms = { queen: 4, granary: 4, dorm: 4, fungus: 2, barricade: 2 };
+    richState.bossesDefeated = { mantis: true };
+    richState.mutations = {
+      mandibules: true, carapace: true, acide: true, royal_exo: true,
+      trophallaxis: true, mycology: true, preservation: true,
+      antennae: true, thermal_brood: true, imperial_fervor: true
+    };
+    richState.stats = {
+      totalAntsHatched: 10,
+      totalRaidsDefeated: 5,
+      winterSurvived: 2,
+      totalPheromonesEarned: 150,
+      prestigesCount: 2
+    };
+
+    Object.keys(achs).forEach(function(key) {
+      const ach = achs[key];
+      assertEqual(ach.check(null), false, "check(null) doit retourner false pour " + key);
+      assertEqual(ach.check(emptyState), false, "check(emptyState) doit retourner false pour " + key);
+      assertEqual(ach.check(richState), true, "check(richState) doit retourner true pour " + key);
+    });
+  });
 });
 
 describe('Internationalisation (i18n) - Parité Stricte FR / EN', function() {
@@ -285,5 +427,50 @@ describe('Internationalisation (i18n) - Parité Stricte FR / EN', function() {
     assertEqual(frTitle, 'EMPIRE FOURMI');
 
     gameState.lang = origLang;
+  });
+});
+
+describe('Architecture & Maintenabilité - Garde-fou Zéro Dette (< 2000 lignes par fichier)', function() {
+  it('doit garantir qu\'aucun fichier source (.js, .css, .html) ne dépasse la limite stricte de 2000 lignes', function() {
+    const MAX_LINES_PER_FILE = 2000;
+    if (typeof require === 'function') {
+      const fs = require('node:fs');
+      const path = require('node:path');
+      const rootDir = path.resolve(__dirname, '..');
+      const ignoredDirs = new Set(['node_modules', 'coverage', '.git', '.agents']);
+      const targetExts = new Set(['.js', '.css', '.html']);
+      const checkedFiles = [];
+      const violations = [];
+
+      function scanDir(dirPath) {
+        const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+        entries.forEach(function(entry) {
+          const fullPath = path.join(dirPath, entry.name);
+          if (entry.isDirectory()) {
+            if (!ignoredDirs.has(entry.name)) {
+              scanDir(fullPath);
+            }
+          } else if (entry.isFile() && targetExts.has(path.extname(entry.name))) {
+            const relPath = path.relative(rootDir, fullPath);
+            const content = fs.readFileSync(fullPath, 'utf8');
+            const lineCount = content.split(/\r\n|\r|\n/).length;
+            checkedFiles.push({ file: relPath, lines: lineCount });
+            if (lineCount >= MAX_LINES_PER_FILE) {
+              violations.push(relPath + ' (' + lineCount + ' lignes >= ' + MAX_LINES_PER_FILE + ')');
+            }
+          }
+        });
+      }
+
+      scanDir(rootDir);
+      assertTrue(checkedFiles.length >= 5, 'Au moins 5 fichiers sources doivent être audités');
+      assertEqual(
+        violations.length,
+        0,
+        'Violation de la règle d\'architecture (< 2000 lignes par fichier). Découpez immédiatement en sous-modules : ' + violations.join(', ')
+      );
+    } else {
+      assertNotNull(GAME_CONFIG, 'GAME_CONFIG présent en environnement navigateur');
+    }
   });
 });

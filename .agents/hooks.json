@@ -1,0 +1,38 @@
+{
+  "gemini-5h-quota-autopilot": {
+    "enabled": false,
+    "SessionStart": [
+      {
+        "type": "command",
+        "command": "node scripts/quota-manager.js hook SessionStart",
+        "timeout": 10
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node scripts/quota-manager.js hook PreToolUse",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "PreInvocation": [
+      {
+        "type": "command",
+        "command": "node scripts/quota-manager.js hook PreInvocation",
+        "timeout": 10
+      }
+    ],
+    "Stop": [
+      {
+        "type": "command",
+        "command": "node scripts/quota-manager.js hook Stop",
+        "timeout": 10
+      }
+    ]
+  }
+}
